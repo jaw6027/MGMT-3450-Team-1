@@ -1,7 +1,7 @@
 /* Pure calculations, sample generation, and the live endpoint contract. */
 const MarketingModel = (() => {
   'use strict';
-  const channels=['Google Ads','Meta Ads','LinkedIn Ads','Organic'];
+  const channels=['Air Force / DoD Outreach','Navy / Maritime Contacts','Civilian Fleet Operators','Technical Demo Requests'];
   const fields=['spend','impressions','clicks','leads','conversions','revenue'];
   const ratio=(a,b,multiplier=1)=>b>0?a/b*multiplier:null;
   function summarize(rows) {
@@ -17,7 +17,7 @@ const MarketingModel = (() => {
   function sample(settings,time,index) {
     const wave=1+Math.sin(index*1.7)*.16,channel=channels[((index%channels.length)+channels.length)%channels.length];
     const impressions=Math.round(settings.impressions*wave),clicks=Math.round(impressions*settings.ctr/100),leads=Math.round(clicks*settings.lead/100),conversions=Math.round(leads*settings.close/100);
-    const spend=channel==='Organic'?0:Math.round(clicks*settings.cpc*(1+Math.sin(index*.7)*.09)*100)/100;
+    const spend=Math.round(clicks*settings.cpc*(1+Math.sin(index*.7)*.09)*100)/100;
     return {timestamp:new Date(time).toISOString(),channel,impressions,clicks,leads,conversions,spend,revenue:conversions*180};
   }
   function simulate(settings,now=Date.now(),offset=0) {return Array.from({length:40},(_,i)=>sample(settings,now-(39-i)*15000,offset+i));}

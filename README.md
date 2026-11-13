@@ -17,19 +17,19 @@ Open `http://127.0.0.1:8765`. Stop the server with Ctrl+C. On PowerShell, set `$
 ## Marketing telemetry features
 
 - Anchor navigation: Overview, Funnel Visualization, Campaign Trends, Alerts, Architecture.
-- Six KPI cards: ad spend, impressions, CTR, conversions, acquisition cost (CAC), and ROAS. Platform tags illustrate intended upstream sources; they do not indicate an authenticated connection.
+- Six KPI cards: outreach spend, impressions, CTR, conversions, acquisition cost (CAC), and return on outreach spend (ROAS). Every card shows the selected buyer segment, or All buyer segments when aggregated.
 - Interactive SVG funnel with demo sliders for impressions, CTR, click-to-lead rate, lead-to-conversion rate, and CPC. Widths use a square-root scale; color intensity represents stage conversion rate. Counts of zero produce no stage area.
-- Forty recent channel intervals, a selectable SVG time-series chart, channel filtering, sortable table columns, and CSV export. Chart points expose exact values by hover or keyboard focus.
+- Forty recent buyer-segment intervals, a selectable SVG time-series chart, buyer-segment filtering, sortable table columns, and CSV export. Chart points expose exact values by hover or keyboard focus.
 - Budget pacing notices at 80% and 100% of a configurable rolling-window budget, plus live connection and stale-data notices.
 - Responsive layouts, keyboard controls, reduced-motion support, and an architecture diagram.
 
 ### Demo calculations
 
-Demo samples cover four channels (Google Ads, Meta Ads, LinkedIn Ads, Organic), with 15-second spacing across the full stream. Each channel therefore appears every 60 seconds. The dashboard starts with 40 samples and appends one every 15 seconds, retaining only 40. Changing a slider regenerates the demonstration window. Browser background throttling may delay updates.
+Demo samples cover four reporting segments: **Air Force / DoD Outreach**, **Navy / Maritime Contacts**, **Civilian Fleet Operators**, and **Technical Demo Requests**, with 15-second spacing across the full stream. Each segment therefore appears every 60 seconds. Funnel chips filter the funnel, KPI cards, chart, and table together; selecting the same chip again restores all segments. Buyer segments are parallel groups; impressions → clicks → leads → conversions remain sequential funnel stages. The dashboard starts with 40 samples and appends one every 15 seconds, retaining only 40. Changing a slider regenerates the demonstration window. Browser background throttling may delay updates.
 
-KPIs and the funnel sum the displayed records for the selected channel. CTR = total clicks / total impressions × 100. CAC = total spend / total conversions, using conversions as a customer acquisition proxy. ROAS = total attributed revenue / total spend. Organic spend is zero, so this is blended acquisition cost when all channels are selected. Demo attributed revenue is $180 per conversion. Ratios with a zero denominator display `—` and create gaps in the chart. Empty live data displays unavailable metrics rather than zero or demo estimates.
+KPIs and the funnel sum the displayed records for the selected buyer segment. CTR = total clicks / total impressions × 100. CAC = total spend / total conversions, using conversions as a customer acquisition proxy. ROAS = total attributed revenue / total spend. All four demo segments carry illustrative outreach costs. These amounts are simulated, not actual buyer spending. Demo attributed revenue is $180 per conversion. Ratios with a zero denominator display `—` and create gaps in the chart. Empty live data displays unavailable metrics rather than zero or demo estimates.
 
-Budget notices use **all channels** in the latest 40 records, independently of the channel filter. The budget is a cap for that rolling window, not a daily or monthly forecast. Thresholds are illustrative settings, not industry benchmarks. With an incomplete live window, the comparison uses only the received records. Controls, endpoint settings, and samples stay in browser memory and reset on reload.
+Budget notices use **all buyer segments** in the latest 40 records, independently of the buyer-segment filter. The budget is a cap for that rolling window, not a daily or monthly forecast. Thresholds are illustrative settings, not industry benchmarks. With an incomplete live window, the comparison uses only the received records. Controls, endpoint settings, and samples stay in browser memory and reset on reload.
 
 ## Connect a live API endpoint
 
@@ -43,6 +43,8 @@ Live mode disables simulation controls and clears all demo samples. Failed, malf
 
 ### JSON response contract
 
+The API retains the field name `channel` for compatibility. Populate it with the buyer-segment label you want displayed; live labels are read from the response without renaming them. Treat the four demo categories as mutually exclusive reporting buckets: a technical demo request assigned to that bucket must not also be counted under a sector bucket.
+
 Return HTTP 200 with `Content-Type: application/json`:
 
 ```json
@@ -52,7 +54,7 @@ Return HTTP 200 with `Content-Type: application/json`:
   "intervals": [
     {
       "timestamp": "2026-11-12T20:00:00Z",
-      "channel": "Google Ads",
+      "channel": "Air Force / DoD Outreach",
       "spend": 180.50,
       "impressions": 4000,
       "clicks": 96,
@@ -81,7 +83,7 @@ The architecture diagram describes the intended upstream system. This repository
 
 ## Database design
 
-`database/schema.sql` is the separate PostgreSQL design for the B2B/B2G sales backend. Neither static dashboard connects to it. It models organizations, campaigns, leads, engagements, and opportunities; it does not yet model the marketing channel intervals above. A future integration needs an authenticated backend, permission controls, a telemetry table/aggregation endpoint, and mapping of sales display labels to the schema enums. Database credentials must remain on the server.
+`database/schema.sql` is the separate PostgreSQL design for the B2B/B2G sales backend. Neither static dashboard connects to it. It models organizations, campaigns, leads, engagements, and opportunities; it does not yet model the marketing buyer-segment intervals above. A future integration needs an authenticated backend, permission controls, a telemetry table/aggregation endpoint, and mapping of sales display labels to the schema enums. Database credentials must remain on the server.
 
 ## Verify the calculations
 
@@ -91,7 +93,7 @@ With Node.js installed, run:
 node --test dashboard/model.test.cjs marketing/model.test.cjs
 ```
 
-No additional packages are required. Tests cover sales pipeline totals, sector filters, search, references, marketing aggregation, zero denominators, slider propagation, API validation, sorting/truncation, empty responses, and CSV escaping. For browser checks: adjust a demo slider, change channels and chart metrics, sort the table, trigger a budget warning, switch to live with no endpoint, and try valid/invalid endpoint responses. Verify that switching back to demo restores the sliders and samples.
+No additional packages are required. Tests cover sales pipeline totals, sector filters, search, references, marketing aggregation, zero denominators, slider propagation, API validation, sorting/truncation, empty responses, and CSV escaping. For browser checks: adjust a demo slider, change buyer segments and chart metrics, sort the table, trigger a budget warning, switch to live with no endpoint, and try valid/invalid endpoint responses. Verify that switching back to demo restores the sliders and samples.
 
 ## Sharing
 

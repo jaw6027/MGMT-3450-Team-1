@@ -8,8 +8,8 @@
   const money=value=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(value);
   const time=value=>new Date(value).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const format=(value,key)=>value===null?'—':['spend','cac','revenue'].includes(key)?money(value):key==='ctr'?value.toFixed(2)+'%':key==='roas'?value.toFixed(2)+'×':number(value);
-  const definitions=[['spend','Ad Spend','Google Ads API · Meta Ads','Σ'],['impressions','Impressions','Google Ads API · Analytics','◉'],['ctr','CTR','Ads reporting','↗'],['conversions','Conversions','Meta Pixel · HubSpot','◇'],['cac','Customer Acquisition Cost','Ad costs + HubSpot','÷'],['roas','Return on Ad Spend','Attributed revenue + ad costs','×']];
-  const columns=[['timestamp','Time'],['channel','Channel'],['spend','Ad spend'],['impressions','Impressions'],['ctr','CTR'],['leads','Leads'],['conversions','Conversions'],['cac','CAC'],['roas','ROAS']];
+  const definitions=[['spend','Outreach Spend','Outreach investment','Σ'],['impressions','Impressions','Buyer audience reach','◉'],['ctr','CTR','Outreach engagement','↗'],['conversions','Conversions','Buyer response tracking','◇'],['cac','Customer Acquisition Cost','Segment acquisition cost','÷'],['roas','Return on Outreach Spend','Attributed buyer revenue','×']];
+  const columns=[['timestamp','Time'],['channel','Buyer segment'],['spend','Outreach spend'],['impressions','Impressions'],['ctr','CTR'],['leads','Leads'],['conversions','Conversions'],['cac','CAC'],['roas','ROAS']];
   function settings(){return Object.fromEntries(['impressions','ctr','lead','close','cpc'].map(key=>[key,Number($('demo-'+key).value)]));}
   function selected(){return state.rows.filter(row=>$('channel').value==='all'||row.channel===$('channel').value);}
   function regenerate(){const offset=state.offset++;state.rows=model.simulate(settings(),Date.now(),offset);state.nextIndex=offset+40;state.updatedAt=new Date().toISOString();render();}
@@ -17,21 +17,26 @@
     const channels=[...new Set(state.rows.map(row=>row.channel))].sort(),select=$('channel');
     const next=['all',...channels];
     if(JSON.stringify([...select.options].map(option=>option.value))!==JSON.stringify(next)){
-      const previous=select.value;select.innerHTML='<option value="all">All channels</option>'+channels.map(channel=>`<option value="${escape(channel)}">${escape(channel)}</option>`).join('');
+      const previous=select.value;select.innerHTML='<option value="all">All buyer segments</option>'+channels.map(channel=>`<option value="${escape(channel)}">${escape(channel)}</option>`).join('');
       select.value=next.includes(previous)?previous:'all';
     }
   }
   function renderKpis(rows){
     const totals=rows.length?model.summarize(rows):null;
-    $('kpis').innerHTML=definitions.map(([key,label,tag,symbol])=>`<article class="kpi"><div class="kpi-title"><span>${label}</span><span class="kpi-symbol" aria-hidden="true">${symbol}</span></div><strong class="kpi-value">${totals?format(totals[key],key):'—'}</strong><span class="source-tag">${escape(tag)}</span><p class="kpi-note">${state.mode==='demo'?'Simulated · example sources':'Backend aggregate · source mapping'}${totals&&totals[key]===null?' · No denominator':''}</p></article>`).join('');
+    const segment=$('channel').value==='all'?'All buyer segments':$('channel').value;
+    $('kpis').innerHTML=definitions.map(([key,label,tag,symbol])=>`<article class="kpi"><div class="kpi-title"><span>${label}</span><span class="kpi-symbol" aria-hidden="true">${symbol}</span></div><strong class="kpi-value">${totals?format(totals[key],key):'—'}</strong><span class="source-tag">${escape(segment)}</span><p class="kpi-note">${state.mode==='demo'?'Simulated':'Backend aggregate'} · ${escape(tag)}${totals&&totals[key]===null?' · No denominator':''}</p></article>`).join('');
   }
   function renderFunnel(rows){
     const svg=$('funnel'),mobile=svg.clientWidth<500,canvasWidth=mobile?520:740;
+    const segment=$('channel').value==='all'?'All buyer segments':$('channel').value;
+    const segments=state.mode==='demo'?model.channels:[...new Set(state.rows.map(row=>row.channel))];
+    $('funnel-segments').innerHTML=segments.map(name=>`<button type="button" class="segment-chip" data-segment="${escape(name)}" aria-pressed="${$('channel').value===name}">${escape(name)}</button>`).join('');
+    $('funnel-scope').textContent=segment+' · impressions → clicks → leads → conversions';
     svg.setAttribute('viewBox',`0 0 ${canvasWidth} 370`);
-    if(!rows.length){svg.innerHTML=`<title id="funnel-svg-title">No funnel data</title><desc id="funnel-svg-description">Connect a valid API endpoint or use Demo Mode.</desc><text x="${canvasWidth/2}" y="180" text-anchor="middle" fill="#83969f" font-size="16">Waiting for channel measurements</text>`;return;}
+    if(!rows.length){svg.innerHTML=`<title id="funnel-svg-title">No funnel data</title><desc id="funnel-svg-description">Connect a valid API endpoint or use Demo Mode.</desc><text x="${canvasWidth/2}" y="180" text-anchor="middle" fill="#83969f" font-size="16">Waiting for segment measurements</text>`;return;}
     const totals=model.summarize(rows),stages=[['Impressions',totals.impressions],['Clicks',totals.clicks],['Leads',totals.leads],['Conversions',totals.conversions]];
     const widths=stages.map(([,count])=>totals.impressions>0&&count>0?24+Math.sqrt(count/totals.impressions)*(mobile?220:390):0),center=mobile?145:240,labelX=mobile?300:500,rateX=mobile?428:635;
-    const description=stages.map(([name,count])=>name+': '+number(count)).join('; ');
+    const description=segment+'. '+stages.map(([name,count])=>name+': '+number(count)).join('; ');
     svg.innerHTML=`<title id="funnel-svg-title">Marketing conversion funnel</title><desc id="funnel-svg-description">${escape(description)}. Stage widths use a square-root scale.</desc><line x1="${center}" x2="${center}" y1="15" y2="345" stroke="#cddde0" stroke-dasharray="3 6"/>`+stages.map(([name,count],i)=>{
       const top=25+i*79,bottom=top+66,w=widths[i],next=widths[i+1]??w*.7;
       const rate=i===0?null:model.ratio(count,stages[i-1][1],100),light=rate===null?74:83-Math.min(100,rate)*.38;
@@ -41,7 +46,7 @@
   function renderChart(rows){
     const key=$('chart-metric').value,label=$('chart-metric').selectedOptions[0].textContent;
     $('chart-title').textContent=label;$('chart-source').textContent=state.mode==='demo'?'Simulated samples':'API measurements';
-    const svg=$('trend-chart'),chartWidth=Math.max(300,Math.min(1100,svg.clientWidth||1100)),right=chartWidth-20,prefix=`<title id="chart-svg-title">${escape(label)} over time</title><desc id="chart-svg-description">${rows.length} channel intervals. Hover or focus points for exact values.</desc>`;
+    const svg=$('trend-chart'),chartWidth=Math.max(300,Math.min(1100,svg.clientWidth||1100)),right=chartWidth-20,prefix=`<title id="chart-svg-title">${escape(label)} over time</title><desc id="chart-svg-description">${rows.length} buyer-segment intervals. Hover or focus points for exact values.</desc>`;
     svg.setAttribute('viewBox',`0 0 ${chartWidth} 250`);
     if(!rows.length){svg.innerHTML=prefix+`<text x="${chartWidth/2}" y="125" text-anchor="middle" fill="#81959e" font-size="13">No measurements to display</text>`;return;}
     const points=rows.map(row=>({row,value:model.metric(row,key)})),values=points.filter(p=>p.value!==null).map(p=>p.value),max=Math.max(...values,1)*1.12;
@@ -56,7 +61,7 @@
   function renderTable(rows){
     document.querySelectorAll('#table-head th').forEach(th=>{const active=th.dataset.key===sortKey;th.setAttribute('aria-sort',active?(sortDirection===1?'ascending':'descending'):'none');th.querySelector('button').textContent=columns.find(([key])=>key===th.dataset.key)[1]+(active?(sortDirection===1?' ↑':' ↓'):' ↕');});
     const ordered=[...rows].sort((a,b)=>{const av=sortValue(a,sortKey),bv=sortValue(b,sortKey);if(av===null)return bv===null?0:1;if(bv===null)return -1;return (typeof av==='string'?av.localeCompare(bv):av-bv)*sortDirection;});
-    $('table-body').innerHTML=ordered.length?ordered.map(row=>`<tr>${columns.map(([key])=>`<td>${key==='timestamp'?`<time datetime="${escape(row.timestamp)}" title="${escape(new Date(row.timestamp).toLocaleString())}">${escape(time(row.timestamp))}</time>`:key==='channel'?`<span class="channel-dot" aria-hidden="true"></span>${escape(row.channel)}`:escape(format(model.metric(row,key),key))}</td>`).join('')}</tr>`).join(''):'<tr><td colspan="9" class="empty">No channel intervals available. Connect an endpoint or switch to Demo Mode.</td></tr>';
+    $('table-body').innerHTML=ordered.length?ordered.map(row=>`<tr>${columns.map(([key])=>`<td>${key==='timestamp'?`<time datetime="${escape(row.timestamp)}" title="${escape(new Date(row.timestamp).toLocaleString())}">${escape(time(row.timestamp))}</time>`:key==='channel'?`<span class="channel-dot" aria-hidden="true"></span>${escape(row.channel)}`:escape(format(model.metric(row,key),key))}</td>`).join('')}</tr>`).join(''):'<tr><td colspan="9" class="empty">No segment intervals available. Connect an endpoint or switch to Demo Mode.</td></tr>';
     $('table-description').textContent=`${rows.length} of ${state.rows.length} recent intervals shown. Select a column header to sort.`;
     $('export').disabled=!rows.length;
   }
@@ -67,15 +72,15 @@
     else if(state.mode==='live'&&!state.rows.length){level='warning';title=state.pending?'Connecting to live telemetry':state.hasResponse?'Live source returned no intervals':'Waiting for live telemetry';message=state.hasResponse?'The endpoint is connected but returned an empty interval list. No campaign measurements are available.':'Choose an API endpoint that follows the documented JSON contract. No campaign data is available yet.';}
     else if(stale){level='warning';title='Live telemetry is stale';message='The latest source update or measurement is more than 60 seconds old. Displayed values are the last received measurements.';}
     else if(!Number.isFinite(budget)||budget<1||budget>1e9){level='warning';title='Enter a valid budget limit';message='Use a rolling-window budget between $1 and $1,000,000,000 to enable pacing notices.';}
-    else{const spent=model.summarize(state.rows).spend,used=spent/budget*100;level=used>=100?'error':used>=80?'warning':'';title=used>=100?'Budget pacing: window limit exceeded':used>=80?'Budget pacing: approaching the window limit':'Budget pacing: within the window limit';message=`${money(spent)} across all displayed channels · ${used.toFixed(1)}% of the ${money(budget)} rolling-window budget. ${state.mode==='demo'?'Demonstration thresholds: notice at 80%, exceeded at 100%.':'Configured notice thresholds: 80% and 100%.'}`;}
+    else{const spent=model.summarize(state.rows).spend,used=spent/budget*100;level=used>=100?'error':used>=80?'warning':'';title=used>=100?'Budget pacing: window limit exceeded':used>=80?'Budget pacing: approaching the window limit':'Budget pacing: within the window limit';message=`${money(spent)} across all displayed buyer segments · ${used.toFixed(1)}% of the ${money(budget)} rolling-window budget. ${state.mode==='demo'?'Demonstration thresholds: notice at 80%, exceeded at 100%.':'Configured notice thresholds: 80% and 100%.'}`;}
     notice.className='notice '+level;notice.innerHTML=`<span class="notice-icon" aria-hidden="true">${level?'!':'✓'}</span><div><strong>${escape(title)}</strong><p>${escape(message)}</p></div>`;
   }
   function render(){
     updateChannels();const rows=selected();renderKpis(rows);renderFunnel(rows);renderChart(rows);renderTable(rows);renderNotice();
-    $('sample-count').textContent=`${rows.length} intervals${state.mode==='demo'?' · 15-second spacing across channels':' · source timestamps'}`;
+    $('sample-count').textContent=`${rows.length} intervals${state.mode==='demo'?' · 15-second spacing across segments':' · source timestamps'}`;
     $('status-label').textContent=state.mode==='demo'?'Simulation active':state.error?'Connection unavailable':state.pending?'Refreshing live source':state.rows.length?'Live source connected':state.hasResponse?'Connected · no intervals':'Awaiting API endpoint';
     $('updated').textContent=state.updatedAt?'Updated '+time(state.updatedAt)+' · local time':'No measurements received';
-    $('source-description').textContent=state.mode==='demo'?'Simulated data. No advertising platforms are connected.':'Live mode uses only the configured endpoint. No mock data or fallback.';
+    $('source-description').textContent=state.mode==='demo'?'Simulated buyer-segment data. No outreach systems are connected.':'Live mode uses only the configured endpoint. No mock data or fallback.';
     $('mode-badge').className='pill '+(state.mode==='demo'?'':state.error||!state.rows.length?'offline':'live');
     $('mode-badge').textContent=state.mode==='demo'?'SIMULATION ACTIVE':state.rows.length?'API DATA':state.hasResponse?'NO INTERVALS':'AWAITING DATA';
     $('connection-message').textContent=state.error||(state.mode==='live'&&!state.endpoint?'Enter your backend endpoint below to connect.':'');
@@ -109,6 +114,7 @@
   $('table-head').innerHTML=columns.map(([key,label])=>`<th scope="col" data-key="${key}" aria-sort="none"><button type="button" data-sort="${key}">${label} ↕</button></th>`).join('');
   $('table-head').addEventListener('click',event=>{const button=event.target.closest('[data-sort]');if(!button)return;sortDirection=sortKey===button.dataset.sort?-sortDirection:-1;sortKey=button.dataset.sort;renderTable(selected());});
   $('channel').addEventListener('change',render);$('chart-metric').addEventListener('change',()=>renderChart(selected()));$('budget').addEventListener('input',renderNotice);
+  $('funnel-segments').addEventListener('click',event=>{const button=event.target.closest('[data-segment]');if(!button)return;$('channel').value=$('channel').value===button.dataset.segment?'all':button.dataset.segment;render();});
   $('demo-controls').addEventListener('input',()=>{if(state.mode==='demo'){renderOutputs();regenerate();}});
   function renderOutputs(){const s=settings();for(const key of Object.keys(s))$('value-'+key).textContent=key==='impressions'?number(s[key]):key==='cpc'?money(s[key]):s[key]+'%';}
   $('export').addEventListener('click',()=>{
