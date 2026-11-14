@@ -45,3 +45,24 @@ test('editable industry names cannot collide with JavaScript object properties',
   const custom=structuredClone(data);custom.organizations[0].industry='constructor';custom.organizations[1].industry='__proto__';
   const result=model.summary(custom);assert.equal(result.industries.find(([name])=>name==='constructor')[1],1);assert.equal(result.industries.find(([name])=>name==='__proto__')[1],1);
 });
+
+test('owner, source, and any selected segment filter companies once and scope their related records',()=>{
+  const custom=structuredClone(data);custom.organizations[0].segments=['U.S. Air Force','Defense contractors'];custom.organizations[0].accountOwner='Vanessa';custom.organizations[0].leadSource='Referral';custom.leads[0].buyerRole='Budget owner';
+  const result=model.select(custom,{owner:'Vanessa',source:'Referral',segment:'Defense contractors'});
+  assert.deepEqual(result.organizations.map(o=>o.id),[1]);assert.equal(model.summary(result).pipeline,840000);
+  assert.deepEqual(model.select(custom,{query:'budget owner'}).organizations.map(o=>o.id),[1]);assert.deepEqual(model.select(custom,{owner:'Hannah'}).organizations,[]);
+  assert.equal(model.select(custom,{owner:''}).organizations.length,8);
+});
+test('follow-up alerts separate overdue, today-to-Sunday, completed tasks and missing prospect follow-ups',()=>{
+  const custom={organizations:[{id:1,relationship:'Prospect'},{id:2,relationship:'Prospect'},{id:3,relationship:'Prospect'},{id:4,relationship:'Customer'}],followups:[
+    {organizationId:1,dueDate:'2026-11-12',completed:false},
+    {organizationId:1,dueDate:'2026-11-13',completed:false},
+    {organizationId:2,dueDate:'2026-11-15',completed:false},
+    {organizationId:2,dueDate:'2026-11-16',completed:false},
+    {organizationId:3,dueDate:'2026-11-14',completed:true}
+  ]};
+  assert.deepEqual(model.alerts(custom,'2026-11-13'),{overdue:1,dueThisWeek:2,withoutFollowup:1,weekEnd:'2026-11-15'});
+  assert.deepEqual(model.alerts(custom,'2026-11-15'),{overdue:2,dueThisWeek:1,withoutFollowup:1,weekEnd:'2026-11-15'});
+  assert.equal(model.alerts(custom,'2026-11-16').weekEnd,'2026-11-22');
+  assert.deepEqual(model.alerts({organizations:[],followups:[]},'2026-11-13'),{overdue:0,dueThisWeek:0,withoutFollowup:0,weekEnd:'2026-11-15'});
+});

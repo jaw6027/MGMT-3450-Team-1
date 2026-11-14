@@ -131,7 +131,7 @@ Customer checks additionally cover metric definitions, search, combined filters,
 ## Editing customer records
 
 1. Start `node server.cjs` from the repository root and open the sales workspace through that server.
-2. Select **Customers → Add customer or company**. Company name, industry, and segment are required. Choose the relationship, military/civilian type, and target market sector; these are separate classifications.
+2. Select **Customers → Add customer or company**. Company name, industry, and at least one segment are required. Choose the relationship, military/civilian type, and target market sector; these are separate classifications. Select an account owner and lead source when known.
 3. Optionally add contacts, opportunities, and follow-ups with the section buttons. Required fields are marked. Opportunity amounts are whole USD; win probabilities are percentages. Add a note with an author, or log a communication to update the last-contact date.
 4. Choose **Save customer**. The dashboard refreshes its records, charts, counts, search, and exports from the server response. New-company saves clear filters so the company is visible.
 5. To update a customer, select its name in the customer directory and choose **Edit customer**. All existing contacts, opportunities, and follow-ups are available for editing. Existing notes and communication history are preserved; new entries are appended.
@@ -139,8 +139,28 @@ Customer checks additionally cover metric definitions, search, combined filters,
 
 Forms preserve entered values on server validation or connection errors. A database revision prevents an old browser window from overwriting newer changes: close the form, use **Refresh records**, and reopen the customer after a conflict. After a connection loss during saving, check the refreshed records before retrying, since the server might already have completed the operation. Canceling an edit discards its unsaved changes.
 
-Writes use same-origin JSON `POST /api/customers`, `PUT /api/customers/:id`, and `DELETE /api/customers/:id` with `X-Customer-Write: 1`. Validation and related record writes run in a single SQLite transaction. Company-only updates preserve omitted contacts and other linked records. IDs submitted for an existing linked record must belong to that company. No table is replaced or cleared during upgrades; startup adds only a revision metadata entry to older databases, and existing seed markers prevent reseeding, even when all companies have intentionally been deleted.
+Writes use same-origin JSON `POST /api/customers`, `PUT /api/customers/:id`, and `DELETE /api/customers/:id` with `X-Customer-Write: 1`. Validation and related record writes run in a single SQLite transaction. Company-only updates preserve omitted contacts and other linked records. IDs submitted for an existing linked record must belong to that company. No table is replaced or cleared during upgrades; startup adds revision/category metadata, new optional fields, and category membership tables to older databases, and existing seed markers prevent reseeding, even when all companies have intentionally been deleted.
 
 The database path remains `.local/customers.sqlite` unless `CUSTOMER_DB_PATH` is set. Local changes stay on this machine; GitHub stores application code, not database records. A pre-upgrade backup for this environment is retained under `.local/backups/`. Do not delete or replace the live database to apply this upgrade; restart the Node server to load the new API code.
 
 Automated checks use temporary databases and cover complete create/edit/delete flows, linked-record preservation, constraints and input errors, atomic rollback, stale-window conflicts, cross-origin write rejection, persistent changes after reopening, and prevention of accidental reseeding. Browser verification also exercises form validation, contact edits, mobile forms, follow-up completion, preserved note history, deletion cancellation/confirmation, connection failures, updated charts/search, and the existing marketing and sales views.
+
+## Standard categories, account ownership, and follow-up alerts
+
+The company editor uses a saved **Industry** dropdown and supports **multiple customer segments**. Choose a segment and select **Add segment**; use its × control to remove it from the selection. At least one segment is required. Military/civilian classification remains a separate field and does not change automatically when industries or segments change.
+
+Use **+ New industry** or **+ New segment** to add a category. New categories are saved in the same transaction as the customer, become available for other companies, and remain available even if a company is deleted. Canceling the customer form discards unsaved category additions. Case and whitespace variations reuse the existing category instead of creating duplicates. Categories previously entered in the legacy database are retained and added to the saved lists during migration.
+
+**Account owner** is a separate company field with Vanessa, Janice, Sherry, Austin, and Hannah as choices. Existing companies remain **Unassigned** until an owner is selected. **Lead source** is the company's recorded acquisition source: Referral, Website inquiry, Networking, Direct outreach, Industry event, or Other. Existing values start as **Not recorded** rather than guessed data. These fields appear in customer profiles, directory summaries, search, filters, and CSV exports.
+
+Each contact now has a **Buyer role** dropdown: Technical evaluator, Decision-maker, Budget owner, or Procurement contact, plus Not recorded. This is independent of the contact's existing job title and qualification stage. Existing titles are preserved; no buyer role is inferred from them. Buyer roles are visible in profiles and included in customer search.
+
+Three prominent follow-up indicators appear above the main KPI cards and use the current customer filters:
+
+- **Overdue follow-ups:** incomplete tasks with a due date before today.
+- **Follow-ups due this week:** incomplete tasks due from today through Sunday, inclusive, using UTC calendar dates. Earlier tasks in the same week are overdue instead.
+- **Prospects without scheduled follow-ups:** prospect companies with no incomplete follow-up task. An overdue incomplete task counts as an existing task and is highlighted by the overdue indicator. Completed tasks do not count as scheduled follow-ups.
+
+The migration operates in place on `.local/customers.sqlite`: it adds `organizations.accountOwner`, `organizations.leadSource`, and `leads.buyerRole`, plus `customer_categories` and `organization_segments`. Existing company, contact, opportunity, communication, note, campaign, and follow-up values are preserved. Each legacy segment becomes a segment membership. The legacy `segment` column remains available as the first selected segment for compatibility; the full selection is stored in the membership table. The pre-upgrade database backup is retained under `.local/backups/` in this environment.
+
+Validation additionally covers repeatable legacy migration, preserved custom categories, multiple segments without duplicate company counts, all five owners, buyer-role/source validation, atomic rollback of failed category additions, persistence, and alert boundaries for today, Sunday, Monday, completed tasks, and empty results. Browser checks cover these controls on desktop and mobile and confirm the existing marketing and sales views still work.
