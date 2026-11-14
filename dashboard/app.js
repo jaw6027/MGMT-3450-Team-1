@@ -12,8 +12,8 @@
     pipeline:['Sales pipeline','From possibility to procurement.','Track every deal across commercial and government sales cycles.']
   };
   const escape = value => String(value).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
-  const compact = value => '$'+new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(value);
+  const money = value => value===null||value===undefined?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
+  const compact = value => value===null||value===undefined?'Unknown':'$'+new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(value);
   const date = value => value?new Date(value+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'Not scheduled';
   const current = () => model.select(data,$('sector').value,$('search').value);
   const badge = value => `<span class="badge ${['Awarded','Active','Sales qualified','Negotiation'].includes(value)?'green':['Evaluation','Proposal submitted','Scheduled'].includes(value)?'amber':['Lost','Completed'].includes(value)?'gray':''}">${escape(value)}</span>`;
@@ -22,15 +22,15 @@
   function stats(s) {
     const m=model.metrics(s);
     return `<div class="stats">${[
-      ['Open pipeline',compact(m.pipeline),`${m.openCount} active opportunities`,'↗'],
-      ['Weighted pipeline',compact(m.weighted),'Value × estimated win probability','◈'],
+      ['Open pipeline',compact(m.pipeline),`${m.openCount} active opportunities · ${s.opportunities.filter(p=>model.open(p)&&p.value===null).length} unknown values`,'↗'],
+      ['Weighted pipeline',compact(m.weighted),'Known value × known win probability · estimate','◈'],
       ['Qualified leads',m.qualified,`${s.leads.length} contacts in selected accounts`,'♧'],
       ['Active campaigns',m.activeCampaigns,`${s.campaigns.length} matching campaigns`,'◎']
     ].map(([label,value,note,icon])=>`<article class="stat"><span class="stat-label">${label}</span><span class="stat-icon" aria-hidden="true">${icon}</span><strong class="stat-value">${value}</strong><span class="stat-note">${note}</span></article>`).join('')}</div>`;
   }
   function opportunityTable(s,openOnly=false) {
     const items=openOnly?s.opportunities.filter(model.open):s.opportunities;
-    return table(['Opportunity / account','Sector','Stage','Contract value','Expected award'],items.map(p=>{
+    return table(['Opportunity / account','Sector','Stage','Contract value','Expected closing'],items.map(p=>{
       const o=s.orgById.get(p.organizationId);
       return [`<button class="link-button" data-opportunity="${p.id}">${escape(p.name)}</button><small>${escape(o.name)}</small>`,escape(o.sector),badge(p.stage),money(p.value),date(p.award)];
     }));
@@ -38,14 +38,14 @@
   function charts(s) {
     const open=s.opportunities.filter(model.open),total=model.metrics(s).pipeline;
     const stages=[...new Set(['Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Renewal',...open.map(p=>p.stage)])];
-    const totals=stages.map(stage=>open.filter(p=>p.stage===stage).reduce((sum,p)=>sum+p.value,0));
+    const totals=stages.map(stage=>model.sum(open.filter(p=>p.stage===stage).map(p=>p.value)));
     const max=Math.max(...totals,1);
     const stageBody=`<div class="stage-chart" role="img" aria-label="Open pipeline value by procurement stage">${stages.map((stage,i)=>`<div class="stage-row"><span>${stage}</span><div class="bar-track"><div class="bar-fill" style="width:${totals[i]/max*100}%"></div></div><span class="stage-value">${compact(totals[i])}</span></div>`).join('')}</div>`;
     const sectorBody=`<div class="sector-list">${['Air Force','Navy','Civilian Commercial'].map(sector=>{
-      const items=open.filter(p=>s.orgById.get(p.organizationId).sector===sector),value=items.reduce((sum,p)=>sum+p.value,0),share=total?value/total*100:0;
-      return `<div class="sector-row"><div class="sector-top"><span>${sector}</span><strong>${compact(value)}</strong></div><div class="sector-track"><div class="sector-fill" style="width:${share}%"></div></div><div class="sector-caption">${items.length} opportunities · ${share.toFixed(0)}% of open pipeline</div></div>`;
+      const items=open.filter(p=>s.orgById.get(p.organizationId).sector===sector),value=model.sum(items.map(p=>p.value)),share=total&&value!==null?value/total*100:0;
+      return `<div class="sector-row"><div class="sector-top"><span>${sector}</span><strong>${compact(value)}</strong></div><div class="sector-track"><div class="sector-fill" style="width:${share}%"></div></div><div class="sector-caption">${items.length} opportunities · ${items.filter(p=>p.value===null).length} unknown values · ${value===null?'Unknown share':share.toFixed(0)+'% of known open pipeline'}</div></div>`;
     }).join('')}</div>`;
-    return `<div class="middle-grid">${panel('Procurement at a glance','Open opportunities by stage · USD',stageBody,'<span class="mini-tag">VALUE BY STAGE</span>')}${panel('A balanced horizon','Open pipeline by customer sector',sectorBody)}</div>`;
+    return `<div class="middle-grid">${panel('Procurement at a glance','Known open opportunity values by stage · USD',stageBody,'<span class="mini-tag">VALUE BY STAGE</span>')}${panel('A balanced horizon','Open pipeline by customer sector',sectorBody)}</div>`;
   }
   function activities(s) {
     const body=s.engagements.length?`<div class="activity">${[...s.engagements].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`<div class="activity-row"><span class="activity-icon" aria-hidden="true">↗</span><div><div class="activity-title">${escape(e.type)} · ${escape(s.orgById.get(e.organizationId).name)}</div><div class="activity-summary">${escape(e.summary)}</div></div><time class="activity-date" datetime="${e.date}">${date(e.date)}</time></div>`).join('')}</div>`:'<div class="empty">No recent activity matches these filters.</div>';
@@ -81,7 +81,7 @@
     const button=event.target.closest('[data-opportunity]');if(!button)return;
     const p=data.opportunities.find(p=>p.id===Number(button.dataset.opportunity)),o=data.organizations.find(o=>o.id===p.organizationId);
     $('detail').classList.remove('customer-dialog');$('detail').removeAttribute('aria-labelledby');
-    $('detail-content').innerHTML=`<h2>${escape(p.name)}</h2><p class="subtitle">${escape(o.name)} · ${escape(o.sector)}</p><dl>${[['Stage',p.stage],['Contract value',money(p.value)],['Win probability',Math.round(p.probability*100)+'%'],['Expected award',date(p.award)],['Opportunity owner',p.owner],['Clearance requirements',o.clearance]].map(([label,value])=>`<div><dt>${label}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl><p class="dialog-note">Fictional opportunity for demonstration. Values, dates, and probabilities are illustrative.</p>`;
+    $('detail-content').innerHTML=`<h2>${escape(p.name)}</h2><p class="subtitle">${escape(o.name)} · ${escape(o.sector)}</p><dl>${[['Stage',p.stage],['Potential contract value',money(p.value)],['Awarded contract value',money(p.awardedValue)],['Won/lost reason',p.outcomeReason||'Not recorded'],['Win probability',p.probability===null||p.probability===undefined?'Unknown':Math.round(p.probability*100)+'%'],['Expected closing',date(p.award)],['Opportunity owner',p.owner],['Clearance requirements',o.clearance]].map(([label,value])=>`<div><dt>${label}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl><p class="dialog-note">Fictional opportunity for demonstration. Values, dates, and probabilities are illustrative.</p>`;
     $('detail').showModal();
   });
   $('close-detail').addEventListener('click',()=>$('detail').close());
@@ -89,7 +89,7 @@
   $('reset').addEventListener('click',()=>{$('search').value='';$('sector').value='all';CustomerDashboard.reset();render();});
   $('export').addEventListener('click',()=>{
     if(view==='customers'){CustomerDashboard.exportRows();return;}
-    const s=current(),rows=[['Opportunity','Organization','Sector','Stage','Contract value','Currency','Win probability','Expected award','Owner'],...s.opportunities.map(p=>[p.name,s.orgById.get(p.organizationId).name,s.orgById.get(p.organizationId).sector,p.stage,p.value,'USD',p.probability,p.award,p.owner])];
+    const s=current(),rows=[['Opportunity','Organization','Sector','Stage','Potential contract value','Currency','Win probability','Expected closing','Owner','Awarded contract value','Won/lost reason'],...s.opportunities.map(p=>[p.name,s.orgById.get(p.organizationId).name,s.orgById.get(p.organizationId).sector,p.stage,p.value??'Unknown','USD',p.probability??'Unknown',p.award,p.owner,p.awardedValue??'Unknown',p.outcomeReason||''])];
     const url=URL.createObjectURL(new Blob([model.csv(rows)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
     link.href=url;link.download='flightpath-opportunities.csv';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });

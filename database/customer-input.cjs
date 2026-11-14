@@ -7,6 +7,11 @@ const choices={
   accountOwners:['Vanessa','Janice','Sherry','Austin','Hannah'],
   leadSources:['Referral','Website inquiry','Networking','Direct outreach','Industry event','Other'],
   buyerRoles:['Technical evaluator','Decision-maker','Budget owner','Procurement contact'],
+  qualificationStatuses:['New Lead','Interested','Qualified','High Priority','Not Qualified'],
+  budgetStatuses:['Identified','Not identified'],
+  decisionMakerStatuses:['Yes','No'],
+  purchaseTimelines:['Within 3 months','3–6 months','6–12 months','More than 12 months'],
+  interestLevels:['Not interested','Low','Moderate','High'],
   interests:['Vibration','Structural bending','Temperature'],
   leadStages:['New','Marketing qualified','Sales qualified','Nurture','Disqualified','Converted'],
   opportunityStages:['Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Awarded','Delivery','Renewal','Lost','Cancelled'],
@@ -41,13 +46,14 @@ function validateCustomer(payload){
   }};
   if(company.accountOwner!==undefined)result.company.accountOwner=choice(company.accountOwner,['',...choices.accountOwners],'account owner');
   if(company.leadSource!==undefined)result.company.leadSource=choice(company.leadSource,['',...choices.leadSources],'lead source');
+  for(const [field,key] of [['qualificationStatus','qualificationStatuses'],['budgetStatus','budgetStatuses'],['decisionMakerContacted','decisionMakerStatuses'],['purchaseTimeline','purchaseTimelines'],['interestLevel','interestLevels']])if(company[field]!==undefined)result.company[field]=choice(company[field],['',...choices[key]],field);
   result.newCategories=rows(payload.newCategories,'New categories',c=>({id:null,kind:choice(c.kind,['industry','segment'],'category type'),name:categoryName(c.name,'Category name')}));
   result.contacts=rows(payload.contacts,'Contacts',c=>{
     const email=text(c.email,'Email address',{max:254});if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail('Enter a valid email address.');
     return {...(c.buyerRole===undefined?{}:{buyerRole:choice(c.buyerRole,['',...choices.buyerRoles],'buyer role')}),id:id(c.id),name:text(c.name,'Contact name',{required:true,max:150}),email,phone:text(c.phone,'Phone number',{max:60}),role:text(c.role,'Contact role',{max:150}),stage:choice(c.stage,choices.leadStages,'lead qualification'),score:number(c.score??0,'Lead score',0,100,true)};
   });
   const emails=result.contacts.map(c=>c.email.toLowerCase()).filter(Boolean);if(new Set(emails).size!==emails.length)fail('A contact email is repeated for this company.');
-  result.opportunities=rows(payload.opportunities,'Opportunities',o=>({id:id(o.id),name:text(o.name,'Opportunity name',{required:true,max:200}),stage:choice(o.stage,choices.opportunityStages,'sales stage'),value:number(o.value,'Contract value',0,1e12,true),probability:number(o.probability,'Win probability',0,1),award:date(o.award,'Expected decision date'),owner:text(o.owner,'Opportunity owner',{max:150})}));
+  result.opportunities=rows(payload.opportunities,'Opportunities',o=>({id:id(o.id),name:text(o.name,'Opportunity name',{required:true,max:200}),stage:choice(o.stage,choices.opportunityStages,'sales stage'),value:o.value===null||o.value===undefined?null:number(o.value,'Contract value',0,1e12,true),probability:o.probability===null||o.probability===undefined?null:number(o.probability,'Win probability',0,1),award:date(o.award,'Expected closing date'),owner:text(o.owner,'Opportunity owner',{max:150}),...(o.outcomeReason===undefined?{}:{outcomeReason:text(o.outcomeReason,'Won/lost reason',{max:2000})}),...(o.awardedValue===undefined?{}:{awardedValue:o.awardedValue===null?null:number(o.awardedValue,'Awarded contract value',0,1e12,true)})}));
   result.followups=rows(payload.followups,'Follow-ups',f=>{
     if(typeof f.completed!=='boolean')fail('Follow-up completion must be true or false.');
     return {id:id(f.id),dueDate:date(f.dueDate,'Follow-up date',true),action:text(f.action,'Follow-up action',{required:true,max:1000}),owner:text(f.owner,'Follow-up owner',{required:true,max:150}),completed:f.completed};

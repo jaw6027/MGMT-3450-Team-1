@@ -44,3 +44,8 @@ test('editable delivery stage is excluded from legacy pipeline forecasts',()=>{
   const custom=structuredClone(data);custom.opportunities[0].stage='Delivery';
   const result=model.metrics(model.select(custom));assert.equal(result.pipeline,3560000);assert.equal(result.openCount,5);
 });
+
+test('legacy sales views preserve unknown values and probabilities while accepting known zero',()=>{
+ const copy=structuredClone(data);copy.opportunities=copy.opportunities.slice(0,1);copy.opportunities[0].value=null;copy.opportunities[0].probability=null;let result=model.metrics(model.select(copy));assert.equal(result.pipeline,null);assert.equal(result.weighted,null);
+ copy.opportunities[0].value=0;copy.opportunities[0].probability=0;result=model.metrics(model.select(copy));assert.equal(result.pipeline,0);assert.equal(result.weighted,0);
+});

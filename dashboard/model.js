@@ -17,14 +17,15 @@ const FlightpathModel = (() => {
     const engagements = data.engagements.filter(e => sectorIds.has(e.organizationId) && (orgMatches(e.organizationId) || matches(e.summary) || selectedLeadIds.has(e.leadId)));
     return {organizations,leads,opportunities,campaigns,engagements,orgById};
   }
+  function sum(rows){const known=rows.filter(v=>typeof v==='number'&&Number.isFinite(v));return known.length?known.reduce((a,b)=>a+b,0):rows.length?null:0;}
   function metrics(selection) {
     const pipeline = selection.opportunities.filter(open);
-    return {pipeline:pipeline.reduce((sum,p)=>sum+p.value,0),weighted:pipeline.reduce((sum,p)=>sum+p.value*p.probability,0),openCount:pipeline.length,qualified:selection.leads.filter(l=>l.stage==='Sales qualified').length,activeCampaigns:selection.campaigns.filter(c=>c.status==='Active').length};
+    return {pipeline:sum(pipeline.map(p=>p.value)),weighted:sum(pipeline.map(p=>typeof p.value==='number'&&typeof p.probability==='number'?p.value*p.probability:null)),openCount:pipeline.length,qualified:selection.leads.filter(l=>l.stage==='Sales qualified').length,activeCampaigns:selection.campaigns.filter(c=>c.status==='Active').length};
   }
   function csv(rows) {
     const cell = value => '"' + String(/^[=+@\-\t\r]/.test(String(value)) ? "'"+value : value).replaceAll('"','""') + '"';
     return '\uFEFF' + rows.map(row=>row.map(cell).join(',')).join('\r\n');
   }
-  return {open,select,metrics,csv};
+  return {open,select,metrics,csv,sum};
 })();
 if (typeof module !== 'undefined') module.exports = FlightpathModel;

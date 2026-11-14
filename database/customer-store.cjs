@@ -7,7 +7,7 @@ const {choices,fail,revision,validateCustomer,categoryName,categoryKey}=require(
 const tables={
   organizations:{id:'INTEGER PRIMARY KEY',name:'TEXT NOT NULL',sector:'TEXT NOT NULL',clearance:'TEXT',customerType:"TEXT NOT NULL CHECK(customerType IN ('Military','Civilian'))",industry:'TEXT NOT NULL',segment:'TEXT NOT NULL',relationship:"TEXT NOT NULL CHECK(relationship IN ('Customer','Prospect'))",interests:'TEXT NOT NULL',needs:'TEXT'},
   leads:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',name:'TEXT NOT NULL',role:'TEXT',stage:'TEXT NOT NULL',score:'INTEGER CHECK(score BETWEEN 0 AND 100)',email:'TEXT',phone:'TEXT'},
-  opportunities:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',name:'TEXT NOT NULL',stage:'TEXT NOT NULL',value:'INTEGER NOT NULL CHECK(value >= 0)',probability:'REAL CHECK(probability BETWEEN 0 AND 1)',award:'TEXT',owner:'TEXT'},
+  opportunities:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',name:'TEXT NOT NULL',stage:'TEXT NOT NULL',value:'INTEGER CHECK(value >= 0)',probability:'REAL CHECK(probability BETWEEN 0 AND 1)',award:'TEXT',owner:'TEXT'},
   campaigns:{id:'INTEGER PRIMARY KEY',name:'TEXT NOT NULL',channel:'TEXT',status:'TEXT',sectors:'TEXT NOT NULL',budget:'INTEGER CHECK(budget >= 0)',leadIds:'TEXT NOT NULL'},
   engagements:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',leadId:'INTEGER REFERENCES leads(id)',type:'TEXT',summary:'TEXT',date:'TEXT NOT NULL'},
   followups:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',leadId:'INTEGER REFERENCES leads(id)',dueDate:'TEXT NOT NULL',action:'TEXT NOT NULL',owner:'TEXT NOT NULL',completed:'INTEGER NOT NULL CHECK(completed IN (0,1))'},
@@ -55,6 +55,28 @@ function openStore(filename){
       }
       db.prepare("INSERT INTO metadata VALUES ('categoryMigration','1')").run();
     }
+    // SQLite cannot remove NOT NULL in place. Rebuild only this table atomically,
+    // preserving its IDs, data, indexes, and original database file.
+    if(db.prepare('PRAGMA table_info(opportunities)').all().find(c=>c.name==='value').notnull){
+      const fields=tables.opportunities,columns=Object.keys(fields).join(',');
+      db.exec(`CREATE TABLE opportunities_nullable (${Object.entries(fields).map(([key,type])=>key+' '+type).join(',')});
+        INSERT INTO opportunities_nullable (${columns}) SELECT ${columns} FROM opportunities;
+        DROP TABLE opportunities;
+        ALTER TABLE opportunities_nullable RENAME TO opportunities;
+        CREATE INDEX opportunities_company ON opportunities(organizationId);`);
+    }
+    for(const column of ['qualificationStatus','budgetStatus','decisionMakerContacted','purchaseTimeline','interestLevel']){
+      if(!db.prepare('PRAGMA table_info(organizations)').all().some(c=>c.name===column))db.exec(`ALTER TABLE organizations ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
+    }
+    for(const [column,type] of [['outcomeReason',"TEXT NOT NULL DEFAULT ''"],['awardedValue','INTEGER CHECK(awardedValue >= 0)']]){
+      if(!db.prepare('PRAGMA table_info(opportunities)').all().some(c=>c.name===column))db.exec(`ALTER TABLE opportunities ADD COLUMN ${column} ${type}`);
+    }
+    if(!db.prepare("SELECT value FROM metadata WHERE key='forecastMigration'").get()){
+      // Existing awarded/delivery values were already recorded as contract values.
+      db.exec("UPDATE opportunities SET awardedValue=value WHERE stage IN ('Awarded','Delivery') AND awardedValue IS NULL");
+      db.prepare("INSERT INTO metadata VALUES ('forecastMigration','1')").run();
+    }
+    if(db.prepare('PRAGMA foreign_key_check').all().length)throw new Error('Database migration failed its relationship check.');
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');db.close();throw error;}
   function addCategory(kind,name){
@@ -108,6 +130,10 @@ function openStore(filename){
       saveRows('leads',id,input.contacts);
       const emails=db.prepare("SELECT lower(trim(email)) AS email FROM leads WHERE organizationId=? AND email IS NOT NULL AND trim(email)<>'' GROUP BY lower(trim(email)) HAVING count(*)>1").all(id);
       if(emails.length)fail('This company already has a contact with that email address.');
+      for(const opportunity of input.opportunities){
+        const previous=opportunity.id===null?null:db.prepare('SELECT stage FROM opportunities WHERE id=? AND organizationId=?').get(opportunity.id,id);
+        if(['Awarded','Delivery','Lost'].includes(opportunity.stage)&&opportunity.stage!==previous?.stage&&!opportunity.outcomeReason?.trim())fail('Record a reason when marking an opportunity as won, delivered, or lost.');
+      }
       saveRows('opportunities',id,input.opportunities);
       saveRows('followups',id,input.followups);
       if(input.note)db.prepare('INSERT INTO notes (organizationId,date,author,text) VALUES (?,?,?,?)').run(id,new Date().toISOString().slice(0,10),input.note.author,input.note.text);

@@ -35,7 +35,7 @@ test('create and edit persist company, contacts, deal stages, notes, communicati
   const update=companyPayload(data.meta.revision);update.company.name='Updated Aero';update.company.customerType='Military';update.company.sector='Navy';update.company.industry='Maritime defense';update.company.segment='U.S. Navy';update.company.relationship='Customer';update.company.interests=['Temperature','Structural bending'];
   update.contacts=contacts.map(c=>({...c,name:'Updated Contact',email:'updated@example.com',phone:'+1 202-555-0188',stage:'Sales qualified'}));
   update.contacts.push({name:'Second Contact',email:'second@example.com',phone:'',role:'Engineer',stage:'Marketing qualified',score:20});
-  update.opportunities=opportunities.map(o=>({...o,stage:'Awarded',value:25000,probability:1}));
+  update.opportunities=opportunities.map(o=>({...o,stage:'Awarded',value:25000,probability:1,outcomeReason:'Sample evaluation accepted',awardedValue:25000}));
   update.followups=followups.map(f=>({...f,dueDate:'2027-03-03',completed:true}));
   store.save(id,update);data=store.read();
   assert.equal(data.meta.revision,2);assert.equal(data.organizations.find(o=>o.id===id).customerType,'Military');
@@ -108,4 +108,31 @@ test('invalid categories, owners, sources and buyer roles cannot alter records o
     const payload=companyPayload();payload.newCategories=[{kind:'industry',name:'Must roll back'}];mutate(payload);assert.throws(()=>store.save(null,payload),e=>e.status===400);assert.deepEqual(store.read(),before);
   }
   for(const owner of ['Vanessa','Janice','Sherry','Austin','Hannah']){const payload=companyPayload(store.read().meta.revision);payload.company.accountOwner=owner;const id=store.save(null,payload);assert.equal(store.read().organizations.find(o=>o.id===id).accountOwner,owner);}
+});
+
+test('qualification, nullable values, awarded amounts and outcome reasons persist without conflating unknown and zero',t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'flightpath-forecast-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));const filename=path.join(dir,'crm.sqlite');let store=openStore(filename);
+ const payload=companyPayload();Object.assign(payload.company,{qualificationStatus:'High Priority',budgetStatus:'Identified',decisionMakerContacted:'Yes',purchaseTimeline:'Within 3 months',interestLevel:'High'});payload.opportunities[0].value=null;payload.opportunities[0].probability=null;
+ const id=store.save(null,payload);let data=store.read(),opportunity=data.opportunities.find(p=>p.organizationId===id);assert.equal(opportunity.value,null);assert.equal(opportunity.probability,null);assert.equal(data.organizations.find(o=>o.id===id).qualificationStatus,'High Priority');
+ const update={revision:data.meta.revision,company:data.organizations.find(o=>o.id===id),opportunities:[{...opportunity,stage:'Awarded',awardedValue:0,outcomeReason:'Fictional no-cost evaluation accepted'}]};store.save(id,update);data=store.read();opportunity=data.opportunities.find(p=>p.organizationId===id);assert.equal(opportunity.awardedValue,0);assert.equal(opportunity.value,null);assert.equal(opportunity.outcomeReason,'Fictional no-cost evaluation accepted');
+ store.close();store=openStore(filename);assert.deepEqual(store.read(),data);store.close();
+});
+test('new won/lost transitions require reasons and invalid qualification or amounts roll back',t=>{
+ const store=memoryStore(t),before=store.read();
+ for(const mutate of [p=>p.company.qualificationStatus='Imaginary',p=>p.company.budgetStatus='Maybe',p=>p.company.decisionMakerContacted=true,p=>p.company.interestLevel='Extreme',p=>p.company.purchaseTimeline='Yesterday',p=>p.opportunities[0].awardedValue=-1,p=>p.opportunities[0].probability=1.2,p=>p.opportunities[0].stage='Lost',p=>p.opportunities[0].stage='Awarded']){
+  const payload=companyPayload();mutate(payload);assert.throws(()=>store.save(null,payload),e=>e.status===400);assert.deepEqual(store.read(),before);
+ }
+ const payload=companyPayload();payload.opportunities[0].stage='Lost';payload.opportunities[0].outcomeReason='Fictional budget unavailable';const id=store.save(null,payload);assert.equal(store.read().opportunities.find(p=>p.organizationId===id).outcomeReason,'Fictional budget unavailable');
+});
+test('legacy NOT NULL opportunity values migrate atomically with every original record preserved',t=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'flightpath-nullable-migration-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));const filename=path.join(dir,'existing.sqlite');let store=openStore(filename);store.close();
+ const legacy=new DatabaseSync(filename);legacy.exec(`CREATE TABLE legacy_opportunities (id INTEGER PRIMARY KEY,organizationId INTEGER NOT NULL REFERENCES organizations(id),name TEXT NOT NULL,stage TEXT NOT NULL,value INTEGER NOT NULL CHECK(value >= 0),probability REAL CHECK(probability BETWEEN 0 AND 1),award TEXT,owner TEXT);
+ INSERT INTO legacy_opportunities SELECT id,organizationId,name,stage,value,probability,award,owner FROM opportunities;
+ DROP TABLE opportunities; ALTER TABLE legacy_opportunities RENAME TO opportunities; CREATE INDEX opportunities_company ON opportunities(organizationId);
+ DELETE FROM metadata WHERE key='forecastMigration';`);
+ for(const column of ['qualificationStatus','budgetStatus','decisionMakerContacted','purchaseTimeline','interestLevel'])legacy.exec(`ALTER TABLE organizations DROP COLUMN ${column}`);
+ const originals={};for(const table of ['organizations','leads','opportunities','campaigns','engagements','followups','notes','customer_categories','organization_segments'])originals[table]=legacy.prepare(`SELECT * FROM ${table} ORDER BY rowid`).all();legacy.close();
+ store=openStore(filename);const data=store.read();store.close();assert.equal(data.organizations.length,9);assert.ok(data.organizations.every(o=>o.qualificationStatus===''&&o.budgetStatus===''&&o.purchaseTimeline===''));assert.equal(data.opportunities.find(p=>p.stage==='Awarded').awardedValue,60000);
+ const db=new DatabaseSync(filename,{readOnly:true});for(const [table,rows] of Object.entries(originals))assert.deepEqual(db.prepare(`SELECT ${Object.keys(rows[0]).join(',')} FROM ${table} ORDER BY rowid`).all(),rows);assert.equal(db.prepare('PRAGMA table_info(opportunities)').all().find(c=>c.name==='value').notnull,0);assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);assert.ok(db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='opportunities_company'").get());db.close();
+ store=openStore(filename);assert.deepEqual(store.read(),data);store.close();
 });

@@ -132,14 +132,14 @@ Customer checks additionally cover metric definitions, search, combined filters,
 
 1. Start `node server.cjs` from the repository root and open the sales workspace through that server.
 2. Select **Customers → Add customer or company**. Company name, industry, and at least one segment are required. Choose the relationship, military/civilian type, and target market sector; these are separate classifications. Select an account owner and lead source when known.
-3. Optionally add contacts, opportunities, and follow-ups with the section buttons. Required fields are marked. Opportunity amounts are whole USD; win probabilities are percentages. Add a note with an author, or log a communication to update the last-contact date.
+3. Optionally add contacts, opportunities, and follow-ups with the section buttons. Required fields are marked. Opportunity amounts are whole USD; win probabilities are percentages. Leave an unknown amount or probability blank; an explicit zero is preserved. Add a note with an author, or log a communication to update the last-contact date.
 4. Choose **Save customer**. The dashboard refreshes its records, charts, counts, search, and exports from the server response. New-company saves clear filters so the company is visible.
 5. To update a customer, select its name in the customer directory and choose **Edit customer**. All existing contacts, opportunities, and follow-ups are available for editing. Existing notes and communication history are preserved; new entries are appended.
 6. To delete, open the customer profile and choose **Delete customer**. Review the confirmation naming the company and linked data. Cancel leaves records unchanged. Confirm permanently removes that company and its linked records; there is no undo.
 
 Forms preserve entered values on server validation or connection errors. A database revision prevents an old browser window from overwriting newer changes: close the form, use **Refresh records**, and reopen the customer after a conflict. After a connection loss during saving, check the refreshed records before retrying, since the server might already have completed the operation. Canceling an edit discards its unsaved changes.
 
-Writes use same-origin JSON `POST /api/customers`, `PUT /api/customers/:id`, and `DELETE /api/customers/:id` with `X-Customer-Write: 1`. Validation and related record writes run in a single SQLite transaction. Company-only updates preserve omitted contacts and other linked records. IDs submitted for an existing linked record must belong to that company. No table is replaced or cleared during upgrades; startup adds revision/category metadata, new optional fields, and category membership tables to older databases, and existing seed markers prevent reseeding, even when all companies have intentionally been deleted.
+Writes use same-origin JSON `POST /api/customers`, `PUT /api/customers/:id`, and `DELETE /api/customers/:id` with `X-Customer-Write: 1`. Validation and related record writes run in a single SQLite transaction. Company-only updates preserve omitted contacts and other linked records. IDs submitted for an existing linked record must belong to that company. The database file is never replaced or cleared during upgrades; startup applies transactional schema migrations to older databases, and existing seed markers prevent reseeding, even when all companies have intentionally been deleted.
 
 The database path remains `.local/customers.sqlite` unless `CUSTOMER_DB_PATH` is set. Local changes stay on this machine; GitHub stores application code, not database records. A pre-upgrade backup for this environment is retained under `.local/backups/`. Do not delete or replace the live database to apply this upgrade; restart the Node server to load the new API code.
 
@@ -164,3 +164,34 @@ Three prominent follow-up indicators appear above the main KPI cards and use the
 The migration operates in place on `.local/customers.sqlite`: it adds `organizations.accountOwner`, `organizations.leadSource`, and `leads.buyerRole`, plus `customer_categories` and `organization_segments`. Existing company, contact, opportunity, communication, note, campaign, and follow-up values are preserved. Each legacy segment becomes a segment membership. The legacy `segment` column remains available as the first selected segment for compatibility; the full selection is stored in the membership table. The pre-upgrade database backup is retained under `.local/backups/` in this environment.
 
 Validation additionally covers repeatable legacy migration, preserved custom categories, multiple segments without duplicate company counts, all five owners, buyer-role/source validation, atomic rollback of failed category additions, persistence, and alert boundaries for today, Sunday, Monday, completed tasks, and empty results. Browser checks cover these controls on desktop and mobile and confirm the existing marketing and sales views still work.
+
+## Customer qualification and revenue forecasting
+
+Open a customer profile and choose **Edit customer → Customer qualification** to record:
+
+- **Status:** New Lead, Interested, Qualified, High Priority, or Not Qualified. Existing companies remain Not assessed until the team evaluates them; the new-company form defaults to New Lead.
+- **Budget:** Identified, Not identified, or Not recorded.
+- **Purchasing decision-maker contacted:** Yes, No, or Not recorded.
+- **Expected purchasing timeline:** Within 3 months, 3–6 months, 6–12 months, More than 12 months, or Not recorded.
+- **Technology interest:** Not interested, Low, Moderate, High, or Not recorded.
+
+Company qualification is independent of individual contacts' sales qualification. No new answers are inferred from old contact scores or pipeline stages. Use the qualification filter and summary to review company-level assessments. The High-priority prospects panel includes only prospect organizations explicitly marked High Priority. The missing-information panel includes customers and prospects without recorded budget information or purchasing timelines; an explicit Not identified budget is recorded information.
+
+Each opportunity supports a nullable potential contract value, nullable estimated win probability, sales stage, expected closing date, separate nullable awarded contract value, and won/lost reason. Blank values are stored as SQL NULL, displayed as Unknown, and never silently changed to zero. Zero is a valid known value. New transitions to Awarded, Delivery, or Lost require a reason. Legacy closed records without reasons remain editable when their stages do not change. Reasons and awarded values persist independently of potential values.
+
+**Financial definitions:**
+
+- Potential sales opportunities are open deals, excluding Awarded, Delivery, Lost, and Cancelled.
+- Potential sales revenue is the sum of known open contract values. Missing-value counts are displayed; partial totals are not complete valuations.
+- Probability-weighted potential revenue sums known open value × known win probability. Deals missing either input are excluded and counted. Probabilities are user-entered assumptions, not calibrated predictions.
+- Awarded contract values total the separate recorded awarded amounts for Awarded/Delivery deals. They are never added to the potential pipeline. Unknown awarded amounts are counted.
+- Actual earned revenue is **Not tracked**. This application does not record revenue recognition, invoicing, payments, or cash receipts. An award is not earned revenue.
+- An empty set of opportunities totals $0; a nonempty set whose amounts are all unknown displays Unknown. A partially valued set displays its known subtotal and the missing-data count.
+
+The monthly chart covers this calendar month and the next 11 months. The quarterly chart covers the current calendar quarter and the next three quarters. Both group open opportunities by expected closing date, using UTC calendar dates, and show known potential contract value alongside its probability-weighted estimate. Closing today is included. Undated and overdue opportunities stay in overall open pipeline totals but are excluded from forward charts and explicitly counted. Deals beyond each chart horizon are counted separately. These charts estimate possible contract closings, not when revenue is earned or cash is received.
+
+The dashboard additionally shows opportunities closest to closing (up to six dated open deals, oldest first, including overdue dates for review), qualification totals, high-priority prospects, missing budgets/timelines, unknown contract values, awarded amounts, and an explicit earned-revenue status. Search, filters, profiles, and exports retain the existing functionality. The navigation buttons above the filters jump to qualification, forecasting, or the customer directory.
+
+The in-place SQLite migration adds qualification and outcome fields. SQLite requires an atomic rebuild of the **opportunities table** to remove the old NOT NULL constraint on `value`; all existing IDs, amounts, stages, dates, and links are preserved, and the original `.local/customers.sqlite` file remains in use. The opportunity-company index and foreign-key integrity are checked. Previously recorded Awarded/Delivery contract values initialize the separate awarded amount; historical zero amounts stay zero. No other historical values or qualification answers are changed. A pre-upgrade backup is retained under `.local/backups/` in this environment.
+
+Tests cover nullable amounts/probabilities, explicit zero, partial/unknown totals, weighted estimates, separation of awarded amounts, monthly and quarterly boundaries, past/undated/beyond-horizon deals, qualification summaries, won/lost reason validation, legacy migration and record preservation, restart persistence, and the existing customer/marketing workflows. Desktop and mobile browser checks additionally exercise the new forms, financial labels, charts, qualification filters, missing-data panels, CSV export, and existing closed records.
