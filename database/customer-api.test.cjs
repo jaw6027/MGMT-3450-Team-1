@@ -14,7 +14,7 @@ test('local server serves database records and dashboard assets while protecting
   const base='http://127.0.0.1:'+port;
   const response=await fetch(base+'/api/customers');assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/application\/json/);
   const body=await response.json();assert.equal(body.meta.sampleData,true);assert.equal(body.organizations.length,9);assert.equal(body.followups.length,6);
-  for(const asset of ['/','/sales.html','/dashboard/customers.js','/dashboard/customer-model.js','/marketing/app.js'])assert.equal((await fetch(base+asset)).status,200,asset);
+  for(const asset of ['/','/sales.html','/dashboard/discovery.js','/dashboard/customers.js','/dashboard/customer-model.js','/marketing/app.js'])assert.equal((await fetch(base+asset)).status,200,asset);
   for(const file of ['/.local/customers.sqlite','/database/schema.sql','/database/customer-store.cjs','/.git/config'])assert.equal((await fetch(base+file)).status,404,file);
   assert.equal((await fetch(base+'/api/customers',{method:'POST'})).status,403);
   const head=await fetch(base+'/api/customers',{method:'HEAD'});assert.equal(head.status,200);assert.equal(await head.text(),'');
@@ -40,3 +40,4 @@ test('local server serves database records and dashboard assets while protecting
   const {openStore}=require('./customer-store.cjs');const persisted=openStore(path.join(dir,'test.sqlite'));assert.deepEqual(persisted.read(),final);persisted.close();
 
 });
+

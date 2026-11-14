@@ -76,6 +76,18 @@ The architecture diagram describes the intended upstream system. This repository
 
 ## Customer Dashboard
 
+### Find potential buyers
+
+In the sales workspace, select **Find buyers** to explore six target markets: U.S. Air Force, U.S. Navy, defense contractors, commercial drone manufacturers, agricultural drone companies, and infrastructure inspection businesses. Each market includes a customer problem to investigate, suggested buyer roles, places to begin research, a discovery question, and an editable-in-practice conversation suggestion to review before using externally. The app never sends outreach messages.
+
+The market cards link to matching companies in the existing customer database. Search matches either market guidance or customer details (including secondary contacts); a guidance match shows the market's member accounts, while a customer-only match shows only those matching accounts. The sector filter applies to both markets and member accounts. Defense contractors can target any sector and remain classified as civilian companies. Multi-segment organizations can appear on multiple cards; these are market memberships, not additive company counts. The customer directory remains the full customer list, including segments outside these six markets.
+
+Choose **Add prospect in this market** to open the existing customer form with suggested industry, segment, customer type, target sector, and sensor interests selected. Review the suggested fields and enter the company name. Needs, named contacts, budget, decision-maker status, buying timeline, and win probability are never invented. Saving uses the same validated API and persistent SQLite database and returns to the customer dashboard. Cancel makes no database changes. If the database is unavailable, guidance stays readable while record counts and prospect creation are unavailable.
+
+The plain-language introduction explains vibration, structural bending, and temperature. All guidance is illustrative; it is not verified buyer intent, a real procurement notice, or a product-performance claim. The nine seeded organizations and eleven contacts remain fictional. No schema migration or seed replacement is needed for this view.
+
+Validation for buyer discovery covers all six markets, sector and membership handling, secondary-contact search, escaped customer text, missing database states, and persistent creation of a prospect from every market. The API test also verifies the discovery script is served. Automated tests pass; desktop/mobile visual browser verification could not run in the restricted execution environment.
+
 Run `node server.cjs` from the repository root, then open `sales.html` through the local server. **Customers** is the default sales-workspace view. The marketing dashboard remains at `index.html`; its assets and calculations are unchanged.
 
 The dashboard reads `/api/customers`, backed by a persistent SQLite database at `.local/customers.sqlite`. The server creates and seeds it once; restarts preserve records and follow-up dates. No package installation, PostgreSQL service, or credentials are required. Set `CUSTOMER_DB_PATH` to use a separate database file, or `PORT` for another local port. The runtime database is ignored by Git. `database/customer-store.cjs` defines the relational demo tables; `database/demo.cjs` provides explicitly fictional records. No existing PostgreSQL schema is applied or replaced.
@@ -195,3 +207,4 @@ The dashboard additionally shows opportunities closest to closing (up to six dat
 The in-place SQLite migration adds qualification and outcome fields. SQLite requires an atomic rebuild of the **opportunities table** to remove the old NOT NULL constraint on `value`; all existing IDs, amounts, stages, dates, and links are preserved, and the original `.local/customers.sqlite` file remains in use. The opportunity-company index and foreign-key integrity are checked. Previously recorded Awarded/Delivery contract values initialize the separate awarded amount; historical zero amounts stay zero. No other historical values or qualification answers are changed. A pre-upgrade backup is retained under `.local/backups/` in this environment.
 
 Tests cover nullable amounts/probabilities, explicit zero, partial/unknown totals, weighted estimates, separation of awarded amounts, monthly and quarterly boundaries, past/undated/beyond-horizon deals, qualification summaries, won/lost reason validation, legacy migration and record preservation, restart persistence, and the existing customer/marketing workflows. Desktop and mobile browser checks additionally exercise the new forms, financial labels, charts, qualification filters, missing-data panels, CSV export, and existing closed records.
+
