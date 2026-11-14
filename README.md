@@ -6,13 +6,13 @@ A responsive engineering-style marketing portal for MGMT 3450 Team 1, with a sep
 
 Download this repository as a ZIP from GitHub (Code → Download ZIP), extract it, and open `index.html` in a modern browser. Keep both asset folders next to it. The link at the top opens `sales.html`, the original sales workspace.
 
-For live endpoints, use the included local server (requires Node.js):
+For the database-connected Customer Dashboard and live endpoints, use the included local server (Node.js 24 recommended; at least 22.13 required for built-in SQLite):
 
 ```text
 node server.cjs
 ```
 
-Open `http://127.0.0.1:8765`. Stop the server with Ctrl+C. On PowerShell, set `$env:PORT=8766` first to use another port. This server serves only the dashboard assets and binds to your computer's loopback address; it is a local preview, not a production backend.
+Open `http://127.0.0.1:8765`. Stop the server with Ctrl+C. On PowerShell, set `$env:PORT=8766` first to use another port. This server serves dashboard assets and a read-only sample customer API, and binds to your computer's loopback address. It is a local demonstration server, not a production backend.
 
 ## Marketing telemetry features
 
@@ -74,23 +74,47 @@ The browser validates up to 10,000 records, sorts by timestamp/channel, and reta
 
 The architecture diagram describes the intended upstream system. This repository does not implement advertising-platform connectors, platform authentication, the warehouse, or an ingestion bridge.
 
+## Customer Dashboard
+
+Run `node server.cjs` from the repository root, then open `sales.html` through the local server. **Customers** is the default sales-workspace view. The marketing dashboard remains at `index.html`; its assets and calculations are unchanged.
+
+The dashboard reads `/api/customers`, backed by a persistent SQLite database at `.local/customers.sqlite`. The server creates and seeds it once; restarts preserve records and follow-up dates. No package installation, PostgreSQL service, or credentials are required. Set `CUSTOMER_DB_PATH` to use a separate database file, or `PORT` for another local port. The runtime database is ignored by Git. `database/customer-store.cjs` defines the relational demo tables; `database/demo.cjs` provides explicitly fictional records. No existing PostgreSQL schema is applied or replaced.
+
+Features:
+
+- Existing-customer and prospect organization counts, sales-qualified contact count, active opportunities, open pipeline value, and probability-weighted pipeline.
+- Industry bar chart, military/civilian donut chart, and sales-stage chart with readable counts and amounts.
+- Search across company names, all contacts and emails, phone numbers, product interests, needs, industries, segments, and notes. Combine sector, customer type, relationship, and industry filters. Cards, charts, table, follow-ups, and CSV export share the customer filters.
+- Customer profiles with contacts, phone/email, product interests, needs, opportunities, recorded communication, notes, last-contact date, and next incomplete follow-up.
+- Incomplete follow-ups ordered by due date, including overdue tasks. Dates are seeded relative to the database creation date and remain fixed afterward; status is evaluated against the current UTC date.
+- Sample customer CSV export. This is an organization-level summary with the first listed contact; review a profile for all contacts and opportunities.
+- Explicit loading, unavailable-database, and no-match states. Connection failures do not display fabricated zero totals or silently substitute static data.
+
+The sample database includes nine fictional organizations across all seven target segments and eleven fictional contacts. There is one existing customer and eight prospects. Private defense contractors are classified as civilian businesses even when they target military markets. Sector represents the existing market grouping, while customer type identifies the organization itself. All company, contact, deal, probability, and activity information is illustrative. Contact emails use `example.com`, and phone numbers use the fictional 202-555-01xx range.
+
+Potential revenue is **open opportunity value in USD**, not earned revenue. Awarded, delivery, lost, and cancelled opportunities are excluded; weighted pipeline multiplies each open value by its illustrative win probability. Existing customers may also have new opportunities. Qualified leads means contacts explicitly marked **Sales qualified**. Company-level counts never count each contact as a separate company.
+
+The demo API is read-only and local. Editing records, multi-user authentication, and production deployment are future work. Do not put real customer information in tracked seed files. A deployed shared CRM requires authenticated backend access and an agreed database deployment; the existing PostgreSQL schema is a starting design, not a connected service.
+
+The existing campaign, leads/accounts, pipeline, and sales overview views remain available and use the database records when the API is connected. Opening HTML directly from disk still supports the original static sales views, but the Customer Dashboard requires the Node server and reports an unavailable connection otherwise.
+
 ## Sales workspace
 
 - `sales.html` opens the original campaigns, leads, accounts, and procurement pipeline dashboard. `dashboard/data.js` contains its fictional sample records.
 - All amounts are USD. Open pipeline excludes awarded, lost, and cancelled opportunities. Weighted pipeline is the sum of each open deal's value multiplied by its illustrative win probability.
 - Search matches account names, contacts, roles, opportunity names, and owners where relevant. Each panel displays matching records; campaign budgets always show full campaign budgets, while lead counts follow the current filters.
-- The sales workspace is a fixed November 12, 2026 snapshot. It supports sector/search filters, opportunity details, and CSV export. No live integrations, authentication, shared persistence, or actual procurement/clearance verification is implemented.
+- The sales workspace is a fixed November 12, 2026 snapshot. It supports sector/search filters, opportunity details, and CSV export. No live external integrations, authentication, or actual procurement/clearance verification is implemented. The new Customer Dashboard adds local sample database persistence.
 
 ## Database design
 
-`database/schema.sql` is the separate PostgreSQL design for the B2B/B2G sales backend. Neither static dashboard connects to it. It models organizations, campaigns, leads, engagements, and opportunities; it does not yet model the marketing buyer-segment intervals above. A future integration needs an authenticated backend, permission controls, a telemetry table/aggregation endpoint, and mapping of sales display labels to the schema enums. Database credentials must remain on the server.
+`database/schema.sql` is the separate PostgreSQL design for the B2B/B2G sales backend. The SQLite-backed Customer Dashboard does not connect to this PostgreSQL design. It models organizations, campaigns, leads, engagements, and opportunities; it does not yet model the marketing buyer-segment intervals above. A future integration needs an authenticated backend, permission controls, a telemetry table/aggregation endpoint, and mapping of sales display labels to the schema enums. Database credentials must remain on the server.
 
 ## Verify the calculations
 
 With Node.js installed, run:
 
 ```text
-node --test dashboard/model.test.cjs marketing/model.test.cjs
+node --test dashboard/*.test.cjs marketing/*.test.cjs database/*.test.cjs
 ```
 
 No additional packages are required. Tests cover sales pipeline totals, sector filters, search, references, marketing aggregation, zero denominators, slider propagation, API validation, sorting/truncation, empty responses, and CSV escaping. For browser checks: adjust a demo slider, change buyer segments and chart metrics, sort the table, trigger a budget warning, switch to live with no endpoint, and try valid/invalid endpoint responses. Verify that switching back to demo restores the sliders and samples.
@@ -98,3 +122,5 @@ No additional packages are required. Tests cover sales pipeline totals, sector f
 ## Sharing
 
 GitHub stores this project code. This repository has not been configured for a hosted website. Download and open it locally, or configure static hosting such as GitHub Pages separately. Both pages use relative asset paths suitable for a repository subdirectory. The existing Drone SHM telemetry website is a separate project and is unchanged.
+
+Customer checks additionally cover metric definitions, search, combined filters, profile dates, empty states, excluded stages, SQLite persistence and constraints, API responses, and database-file access restrictions.

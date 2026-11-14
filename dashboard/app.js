@@ -1,9 +1,11 @@
 (() => {
   'use strict';
-  const data = FlightpathData, model = FlightpathModel;
+  let data = FlightpathData;
+  const model = FlightpathModel;
   const $ = id => document.getElementById(id);
-  let view = 'overview';
+  let view = 'customers';
   const titles = {
+    customers:['Customers','Know your customers. Grow your opportunities.','Customer relationships, sales potential, and the next conversation — in one place.'],
     overview:['Overview','A clearer view of your pipeline.','From first contact to contract award. Keep every opportunity in sight.'],
     campaigns:['Campaigns','Make every touchpoint count.','Explore campaign audiences, activity, and planned investment.'],
     leads:['Leads & accounts','Relationships that move you forward.','Know the people and organizations behind your next opportunity.'],
@@ -65,26 +67,32 @@
     const s=current(),[label,title,description]=titles[view];
     $('breadcrumb').textContent=label;$('page-title').textContent=title;$('page-description').textContent=description;
     document.querySelectorAll('[data-view]').forEach(button=>{const active=button.dataset.view===view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
-    $('dashboard').innerHTML=stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
+    $('export').disabled=view==='customers'&&!CustomerDashboard.isReady();
+    $('export').textContent=view==='customers'?'↓ Export customers':'↓ Export opportunities';
+    $('dashboard').innerHTML=view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
   }
   function navigate(next) {view=next;history.replaceState(null,'','#'+next);render();}
   document.querySelector('nav').addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(button)navigate(button.dataset.view);});
   document.querySelector('.brand').addEventListener('click',event=>{event.preventDefault();navigate('overview');});
+  $('dashboard').addEventListener('change',event=>CustomerDashboard.change(event));
   $('dashboard').addEventListener('click',event=>{
+    if(CustomerDashboard.click(event))return;
     const go=event.target.closest('[data-go]');if(go){navigate(go.dataset.go);return;}
     const button=event.target.closest('[data-opportunity]');if(!button)return;
     const p=data.opportunities.find(p=>p.id===Number(button.dataset.opportunity)),o=data.organizations.find(o=>o.id===p.organizationId);
+    $('detail').classList.remove('customer-dialog');$('detail').removeAttribute('aria-labelledby');
     $('detail-content').innerHTML=`<h2>${escape(p.name)}</h2><p class="subtitle">${escape(o.name)} · ${escape(o.sector)}</p><dl>${[['Stage',p.stage],['Contract value',money(p.value)],['Win probability',Math.round(p.probability*100)+'%'],['Expected award',date(p.award)],['Opportunity owner',p.owner],['Clearance requirements',o.clearance]].map(([label,value])=>`<div><dt>${label}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl><p class="dialog-note">Fictional opportunity for demonstration. Values, dates, and probabilities are illustrative.</p>`;
     $('detail').showModal();
   });
   $('close-detail').addEventListener('click',()=>$('detail').close());
   $('search').addEventListener('input',render);$('sector').addEventListener('change',render);
-  $('reset').addEventListener('click',()=>{$('search').value='';$('sector').value='all';render();});
+  $('reset').addEventListener('click',()=>{$('search').value='';$('sector').value='all';CustomerDashboard.reset();render();});
   $('export').addEventListener('click',()=>{
+    if(view==='customers'){CustomerDashboard.exportRows();return;}
     const s=current(),rows=[['Opportunity','Organization','Sector','Stage','Contract value','Currency','Win probability','Expected award','Owner'],...s.opportunities.map(p=>[p.name,s.orgById.get(p.organizationId).name,s.orgById.get(p.organizationId).sector,p.stage,p.value,'USD',p.probability,p.award,p.owner])];
     const url=URL.createObjectURL(new Blob([model.csv(rows)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
     link.href=url;link.download='flightpath-opportunities.csv';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  function fromHash(){view=Object.hasOwn(titles,location.hash.slice(1))?location.hash.slice(1):'overview';render();}
-  window.addEventListener('hashchange',fromHash);fromHash();
+  function fromHash(){view=Object.hasOwn(titles,location.hash.slice(1))?location.hash.slice(1):'customers';render();}
+  window.addEventListener('hashchange',fromHash);fromHash();CustomerDashboard.init(()=>{data=CustomerDashboard.getData()||FlightpathData;render();});
 })();

@@ -1,0 +1,22 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const os=require('node:os');
+const path=require('node:path');
+const {DatabaseSync}=require('node:sqlite');
+const {openStore}=require('./customer-store.cjs');
+test('SQLite seed is persistent, relational and repeatable without overwriting changes',t=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'flightpath-store-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const filename=path.join(dir,'customer.sqlite');let store=openStore(filename);
+  const original=store.read();assert.equal(original.meta.sampleData,true);assert.equal(original.organizations.length,9);
+  assert.deepEqual(original.organizations[0].interests,['Vibration','Structural bending']);
+  assert.equal(original.followups.find(f=>f.id===6).completed,true);store.close();
+  const db=new DatabaseSync(filename);db.exec('PRAGMA foreign_keys=ON');
+  assert.throws(()=>db.prepare('UPDATE leads SET organizationId=999 WHERE id=1').run(),/FOREIGN KEY/);
+  assert.throws(()=>db.prepare("UPDATE organizations SET customerType='Unknown' WHERE id=1").run(),/CHECK/);
+  db.prepare('UPDATE organizations SET needs=? WHERE id=?').run('Preserved sample requirement',1);db.close();
+  store=openStore(filename);t.after(()=>store.close());
+  const reopened=store.read();assert.equal(reopened.organizations.length,9);assert.equal(reopened.leads.length,11);
+  assert.equal(reopened.organizations[0].needs,'Preserved sample requirement');
+  assert.deepEqual(reopened.followups,original.followups);assert.equal(reopened.meta.seededOn,original.meta.seededOn);
+});
