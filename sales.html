@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Flightpath | Customer intelligence</title><link rel="stylesheet" href="dashboard/styles.css"><script defer src="dashboard/data.js"></script><script defer src="dashboard/model.js"></script><script defer src="dashboard/customer-model.js"></script><script defer src="dashboard/customers.js"></script><script defer src="dashboard/app.js"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Flightpath | Customer intelligence</title><link rel="stylesheet" href="dashboard/styles.css"><script defer src="dashboard/data.js"></script><script defer src="dashboard/model.js"></script><script defer src="dashboard/customer-model.js"></script><script defer src="dashboard/customer-editor.js"></script><script defer src="dashboard/customers.js"></script><script defer src="dashboard/app.js"></script></head>
 <body>
 <a class="skip" href="#main">Skip to dashboard</a>
 <aside class="sidebar"><a class="brand" href="#overview"><span class="brand-icon">↗</span> flightpath<span class="brand-dot">.</span></a><p class="sidebar-caption">DRONE SALES INTELLIGENCE</p><nav aria-label="Dashboard"><button data-view="customers">◉ <span>Customers</span></button><button data-view="overview" class="active">◫ <span>Overview</span></button><button data-view="campaigns">◎ <span>Campaigns</span></button><button data-view="leads">♧ <span>Leads & accounts</span></button><button data-view="pipeline">↗ <span>Sales pipeline</span></button></nav><div class="workspace"><span class="workspace-icon">T1</span><div>Team 01<small>MGMT 3450 · Class project</small></div></div><div class="sidebar-bottom"><span class="live-dot"></span> Sample workspace<small>Fictional data · USD</small></div></aside>
@@ -10,4 +10,5 @@
 <div id="dashboard" aria-live="polite"></div>
 <footer>FLIGHTPATH / TEAM 01 <span>Illustrative sales data only · No live integrations</span></footer></main></div>
 <dialog id="detail"><div class="dialog-top"><span class="eyebrow">OPPORTUNITY BRIEF</span><button id="close-detail" aria-label="Close opportunity details">✕</button></div><div id="detail-content"></div></dialog>
+<dialog id="customer-editor" class="customer-editor" aria-labelledby="customer-editor-title"></dialog>
 </body></html>

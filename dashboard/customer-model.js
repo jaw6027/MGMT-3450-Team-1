@@ -12,7 +12,7 @@ const CustomerModel=(()=>{
   }
   function summary(data){
     const active=data.opportunities.filter(open);
-    const groups=field=>Object.entries(data.organizations.reduce((acc,o)=>(acc[o[field]]=(acc[o[field]]||0)+1,acc),{})).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+    const groups=field=>Object.entries(data.organizations.reduce((acc,o)=>(acc[o[field]]=(acc[o[field]]||0)+1,acc),Object.create(null))).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
     const stages=['Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Renewal'];
     active.forEach(p=>{if(!stages.includes(p.stage))stages.push(p.stage);});
     return {customers:data.organizations.filter(o=>o.relationship==='Customer').length,prospects:data.organizations.filter(o=>o.relationship==='Prospect').length,qualified:data.leads.filter(l=>l.stage==='Sales qualified').length,active:active.length,pipeline:active.reduce((n,p)=>n+p.value,0),weighted:active.reduce((n,p)=>n+p.value*p.probability,0),industries:groups('industry'),types:groups('customerType'),stages:stages.map(stage=>({stage,count:active.filter(p=>p.stage===stage).length,value:active.filter(p=>p.stage===stage).reduce((n,p)=>n+p.value,0)})).filter(s=>s.count)};

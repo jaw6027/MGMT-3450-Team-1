@@ -40,3 +40,8 @@ test('delivery, awarded, lost and cancelled opportunities are closed for forecas
   const copy=structuredClone(data);copy.opportunities.push({id:99,organizationId:1,stage:'Delivery',value:9999999,probability:1});
   assert.equal(model.summary(copy).pipeline,4400000);
 });
+
+test('editable industry names cannot collide with JavaScript object properties',()=>{
+  const custom=structuredClone(data);custom.organizations[0].industry='constructor';custom.organizations[1].industry='__proto__';
+  const result=model.summary(custom);assert.equal(result.industries.find(([name])=>name==='constructor')[1],1);assert.equal(result.industries.find(([name])=>name==='__proto__')[1],1);
+});

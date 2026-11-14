@@ -14,7 +14,7 @@
   const escape = value => String(value).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money = value => new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
   const compact = value => '$'+new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:2}).format(value);
-  const date = value => new Date(value+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'});
+  const date = value => value?new Date(value+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'Not scheduled';
   const current = () => model.select(data,$('sector').value,$('search').value);
   const badge = value => `<span class="badge ${['Awarded','Active','Sales qualified','Negotiation'].includes(value)?'green':['Evaluation','Proposal submitted','Scheduled'].includes(value)?'amber':['Lost','Completed'].includes(value)?'gray':''}">${escape(value)}</span>`;
   function panel(title,description,body,action='') {return `<section class="panel"><div class="panel-header"><div><h2>${title}</h2><p>${description}</p></div>${action}</div>${body}</section>`;}
@@ -37,7 +37,7 @@
   }
   function charts(s) {
     const open=s.opportunities.filter(model.open),total=model.metrics(s).pipeline;
-    const stages=['Qualification','RFI / market research','Proposal submitted','Evaluation','Negotiation'];
+    const stages=[...new Set(['Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Renewal',...open.map(p=>p.stage)])];
     const totals=stages.map(stage=>open.filter(p=>p.stage===stage).reduce((sum,p)=>sum+p.value,0));
     const max=Math.max(...totals,1);
     const stageBody=`<div class="stage-chart" role="img" aria-label="Open pipeline value by procurement stage">${stages.map((stage,i)=>`<div class="stage-row"><span>${stage}</span><div class="bar-track"><div class="bar-fill" style="width:${totals[i]/max*100}%"></div></div><span class="stage-value">${compact(totals[i])}</span></div>`).join('')}</div>`;

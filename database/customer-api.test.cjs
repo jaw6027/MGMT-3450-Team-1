@@ -16,6 +16,27 @@ test('local server serves database records and dashboard assets while protecting
   const body=await response.json();assert.equal(body.meta.sampleData,true);assert.equal(body.organizations.length,9);assert.equal(body.followups.length,6);
   for(const asset of ['/','/sales.html','/dashboard/customers.js','/dashboard/customer-model.js','/marketing/app.js'])assert.equal((await fetch(base+asset)).status,200,asset);
   for(const file of ['/.local/customers.sqlite','/database/schema.sql','/database/customer-store.cjs','/.git/config'])assert.equal((await fetch(base+file)).status,404,file);
-  assert.equal((await fetch(base+'/api/customers',{method:'POST'})).status,405);
+  assert.equal((await fetch(base+'/api/customers',{method:'POST'})).status,403);
   const head=await fetch(base+'/api/customers',{method:'HEAD'});assert.equal(head.status,200);assert.equal(await head.text(),'');
+  const headers={'Content-Type':'application/json','X-Customer-Write':'1'};
+  const create={revision:body.meta.revision,company:{...body.organizations[0],name:'API Sample Company'},contacts:[{name:'API Contact',email:'api@example.com',phone:'+1 202-555-0177',role:'Manager',stage:'New',score:0}],opportunities:[{name:'API pilot',stage:'Evaluation',value:5500,probability:.4,award:'2027-01-01',owner:'API Owner'}],followups:[{dueDate:'2027-01-01',action:'Call customer',owner:'API Owner',completed:false}],note:{author:'API Owner',text:'Created through the API'}};
+  const write=(url,method,payload,extra={})=>fetch(base+url,{method,headers:{...headers,...extra},body:JSON.stringify(payload)});
+  const created=await write('/api/customers','POST',create);assert.equal(created.status,201);
+  let records=await created.json();const id=records.organizations.find(o=>o.name==='API Sample Company').id;
+  assert.equal(records.organizations.length,10);assert.equal(records.meta.revision,1);
+  const update={...create,revision:records.meta.revision,company:{...create.company,customerType:'Civilian',industry:'Agriculture',segment:'Agricultural drone companies'},contacts:records.leads.filter(l=>l.organizationId===id).map(l=>({...l,email:'edited@example.com'})),opportunities:records.opportunities.filter(o=>o.organizationId===id).map(o=>({...o,stage:'Delivery'})),followups:records.followups.filter(f=>f.organizationId===id).map(f=>({...f,completed:true})),note:{author:'API Owner',text:'Updated through the API'}};
+  const updated=await write('/api/customers/'+id,'PUT',update);assert.equal(updated.status,200);records=await updated.json();assert.equal(records.leads.find(l=>l.organizationId===id).email,'edited@example.com');assert.equal(records.notes.filter(n=>n.organizationId===id).length,2);
+  assert.equal((await write('/api/customers/'+id,'PUT',update)).status,409);
+  assert.equal((await write('/api/customers','POST',{...create,revision:records.meta.revision,company:{...create.company,name:''}})).status,400);
+  assert.equal((await write('/api/customers','POST',create,{'Origin':'https://untrusted.example'})).status,403);
+  assert.equal((await write('/api/customers','POST',create,{'Sec-Fetch-Site':'cross-site'})).status,403);
+  assert.equal((await write('/api/customers','POST',create,{'Content-Type':'text/plain'})).status,415);
+  assert.equal((await write('/api/customers/'+id,'DELETE',null)).status,400);
+  assert.equal((await fetch(base+'/api/customers',{method:'POST',headers,body:'{bad json'})).status,400);
+  assert.equal((await fetch(base+'/api/customers',{method:'POST',headers,body:JSON.stringify({padding:'x'.repeat(270000)})})).status,413);
+  assert.deepEqual(await (await fetch(base+'/api/customers')).json(),records);
+  const deleted=await write('/api/customers/'+id,'DELETE',{revision:records.meta.revision});assert.equal(deleted.status,200);const final=await deleted.json();
+  for(const table of ['organizations','leads','opportunities','engagements','followups','notes','campaigns'])assert.deepEqual(final[table],body[table]);
+  const {openStore}=require('./customer-store.cjs');const persisted=openStore(path.join(dir,'test.sqlite'));assert.deepEqual(persisted.read(),final);persisted.close();
+
 });

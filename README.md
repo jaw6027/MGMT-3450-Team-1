@@ -12,7 +12,7 @@ For the database-connected Customer Dashboard and live endpoints, use the includ
 node server.cjs
 ```
 
-Open `http://127.0.0.1:8765`. Stop the server with Ctrl+C. On PowerShell, set `$env:PORT=8766` first to use another port. This server serves dashboard assets and a read-only sample customer API, and binds to your computer's loopback address. It is a local demonstration server, not a production backend.
+Open `http://127.0.0.1:8765`. Stop the server with Ctrl+C. On PowerShell, set `$env:PORT=8766` first to use another port. This server serves dashboard assets and a sample customer API with validated create, update, and delete operations, and binds to your computer's loopback address. It is a local demonstration server, not a production backend.
 
 ## Marketing telemetry features
 
@@ -88,13 +88,16 @@ Features:
 - Customer profiles with contacts, phone/email, product interests, needs, opportunities, recorded communication, notes, last-contact date, and next incomplete follow-up.
 - Incomplete follow-ups ordered by due date, including overdue tasks. Dates are seeded relative to the database creation date and remain fixed afterward; status is evaluated against the current UTC date.
 - Sample customer CSV export. This is an organization-level summary with the first listed contact; review a profile for all contacts and opportunities.
+- Add customer/company forms, editable contacts and qualification, military/civilian classification, industries and segments, product interests, and customer needs.
+- Add or update sales opportunities and pipeline stages, add dated relationship notes, log communications, and schedule, reschedule, or complete follow-ups.
+- Confirmed company deletion removes its linked contacts, opportunities, follow-ups, notes, and communications; campaigns remain with the deleted contacts removed.
 - Explicit loading, unavailable-database, and no-match states. Connection failures do not display fabricated zero totals or silently substitute static data.
 
 The sample database includes nine fictional organizations across all seven target segments and eleven fictional contacts. There is one existing customer and eight prospects. Private defense contractors are classified as civilian businesses even when they target military markets. Sector represents the existing market grouping, while customer type identifies the organization itself. All company, contact, deal, probability, and activity information is illustrative. Contact emails use `example.com`, and phone numbers use the fictional 202-555-01xx range.
 
 Potential revenue is **open opportunity value in USD**, not earned revenue. Awarded, delivery, lost, and cancelled opportunities are excluded; weighted pipeline multiplies each open value by its illustrative win probability. Existing customers may also have new opportunities. Qualified leads means contacts explicitly marked **Sales qualified**. Company-level counts never count each contact as a separate company.
 
-The demo API is read-only and local. Editing records, multi-user authentication, and production deployment are future work. Do not put real customer information in tracked seed files. A deployed shared CRM requires authenticated backend access and an agreed database deployment; the existing PostgreSQL schema is a starting design, not a connected service.
+The editable demo API is local. Multi-user authentication and production deployment are future work. Do not put real customer information in tracked seed files. A deployed shared CRM requires authenticated backend access and an agreed database deployment; the existing PostgreSQL schema is a starting design, not a connected service.
 
 The existing campaign, leads/accounts, pipeline, and sales overview views remain available and use the database records when the API is connected. Opening HTML directly from disk still supports the original static sales views, but the Customer Dashboard requires the Node server and reports an unavailable connection otherwise.
 
@@ -103,7 +106,7 @@ The existing campaign, leads/accounts, pipeline, and sales overview views remain
 - `sales.html` opens the original campaigns, leads, accounts, and procurement pipeline dashboard. `dashboard/data.js` contains its fictional sample records.
 - All amounts are USD. Open pipeline excludes awarded, lost, and cancelled opportunities. Weighted pipeline is the sum of each open deal's value multiplied by its illustrative win probability.
 - Search matches account names, contacts, roles, opportunity names, and owners where relevant. Each panel displays matching records; campaign budgets always show full campaign budgets, while lead counts follow the current filters.
-- The sales workspace is a fixed November 12, 2026 snapshot. It supports sector/search filters, opportunity details, and CSV export. No live external integrations, authentication, or actual procurement/clearance verification is implemented. The new Customer Dashboard adds local sample database persistence.
+- The original sales sample records start from a November 12, 2026 snapshot and can now be updated through the Customer Dashboard. It supports sector/search filters, opportunity details, and CSV export. No live external integrations, authentication, or actual procurement/clearance verification is implemented. The new Customer Dashboard adds local sample database persistence.
 
 ## Database design
 
@@ -124,3 +127,20 @@ No additional packages are required. Tests cover sales pipeline totals, sector f
 GitHub stores this project code. This repository has not been configured for a hosted website. Download and open it locally, or configure static hosting such as GitHub Pages separately. Both pages use relative asset paths suitable for a repository subdirectory. The existing Drone SHM telemetry website is a separate project and is unchanged.
 
 Customer checks additionally cover metric definitions, search, combined filters, profile dates, empty states, excluded stages, SQLite persistence and constraints, API responses, and database-file access restrictions.
+
+## Editing customer records
+
+1. Start `node server.cjs` from the repository root and open the sales workspace through that server.
+2. Select **Customers → Add customer or company**. Company name, industry, and segment are required. Choose the relationship, military/civilian type, and target market sector; these are separate classifications.
+3. Optionally add contacts, opportunities, and follow-ups with the section buttons. Required fields are marked. Opportunity amounts are whole USD; win probabilities are percentages. Add a note with an author, or log a communication to update the last-contact date.
+4. Choose **Save customer**. The dashboard refreshes its records, charts, counts, search, and exports from the server response. New-company saves clear filters so the company is visible.
+5. To update a customer, select its name in the customer directory and choose **Edit customer**. All existing contacts, opportunities, and follow-ups are available for editing. Existing notes and communication history are preserved; new entries are appended.
+6. To delete, open the customer profile and choose **Delete customer**. Review the confirmation naming the company and linked data. Cancel leaves records unchanged. Confirm permanently removes that company and its linked records; there is no undo.
+
+Forms preserve entered values on server validation or connection errors. A database revision prevents an old browser window from overwriting newer changes: close the form, use **Refresh records**, and reopen the customer after a conflict. After a connection loss during saving, check the refreshed records before retrying, since the server might already have completed the operation. Canceling an edit discards its unsaved changes.
+
+Writes use same-origin JSON `POST /api/customers`, `PUT /api/customers/:id`, and `DELETE /api/customers/:id` with `X-Customer-Write: 1`. Validation and related record writes run in a single SQLite transaction. Company-only updates preserve omitted contacts and other linked records. IDs submitted for an existing linked record must belong to that company. No table is replaced or cleared during upgrades; startup adds only a revision metadata entry to older databases, and existing seed markers prevent reseeding, even when all companies have intentionally been deleted.
+
+The database path remains `.local/customers.sqlite` unless `CUSTOMER_DB_PATH` is set. Local changes stay on this machine; GitHub stores application code, not database records. A pre-upgrade backup for this environment is retained under `.local/backups/`. Do not delete or replace the live database to apply this upgrade; restart the Node server to load the new API code.
+
+Automated checks use temporary databases and cover complete create/edit/delete flows, linked-record preservation, constraints and input errors, atomic rollback, stale-window conflicts, cross-origin write rejection, persistent changes after reopening, and prevention of accidental reseeding. Browser verification also exercises form validation, contact edits, mobile forms, follow-up completion, preserved note history, deletion cancellation/confirmation, connection failures, updated charts/search, and the existing marketing and sales views.

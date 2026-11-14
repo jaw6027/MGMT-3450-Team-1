@@ -1,5 +1,5 @@
 const FlightpathModel = (() => {
-  const open = opportunity => !['Awarded','Lost','Cancelled'].includes(opportunity.stage);
+  const open = opportunity => !['Awarded','Delivery','Lost','Cancelled'].includes(opportunity.stage);
   function select(data, sector = 'all', query = '') {
     const q = query.trim().toLowerCase();
     const matches = value => String(value).toLowerCase().includes(q);

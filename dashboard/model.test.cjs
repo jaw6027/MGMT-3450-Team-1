@@ -39,3 +39,8 @@ test('CSV quotes delimiters and neutralizes spreadsheet formula prefixes',()=>{
   const result=model.csv([['a,b','a"b','=SUM(A1)','normal']]);
   assert.equal(result,'\uFEFF"a,b","a""b","\'=SUM(A1)","normal"');
 });
+
+test('editable delivery stage is excluded from legacy pipeline forecasts',()=>{
+  const custom=structuredClone(data);custom.opportunities[0].stage='Delivery';
+  const result=model.metrics(model.select(custom));assert.equal(result.pipeline,3560000);assert.equal(result.openCount,5);
+});
