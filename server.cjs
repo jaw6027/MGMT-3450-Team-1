@@ -5,9 +5,13 @@ const path=require('node:path');
 const {openStore}=require('./database/customer-store.cjs');
 const {fail}=require('./database/customer-input.cjs');
 const store=openStore(process.env.CUSTOMER_DB_PATH||path.join(__dirname,'.local','customers.sqlite'),{expandDemo:process.env.CUSTOMER_DEMO_EXPANSION!=='0'});
+const {openEvaluationStore}=require('./database/segment-evaluation-store.cjs');
+const strategy=require('./dashboard/segment-strategy-model.js');
+const catalog=require('./dashboard/prospect-catalog.js');
+const evaluations=openEvaluationStore(process.env.EVALUATION_DB_PATH||((process.env.CUSTOMER_DB_PATH||path.join(__dirname,'.local','customers.sqlite'))+'.evaluations.sqlite'));
 const root=__dirname;
 const port=Number(process.env.PORT||8765);
-const allowed=new Set(['index.html','sales.html','segment-evaluation.html','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
+const allowed=new Set(['index.html','sales.html','segment-evaluation.html','dashboard/prospect-catalog.js','dashboard/segment-strategy-model.js','dashboard/segment-strategy.js','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 function json(response,status,body,head=false){response.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});response.end(head?undefined:JSON.stringify(body));}
 async function readBody(request){
@@ -19,12 +23,13 @@ async function readBody(request){
 }
 const server=http.createServer(async(request,response)=>{
   let pathname;try{pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);}catch{response.writeHead(400);response.end('Invalid URL');return;}
+  const evaluationRoute=pathname==='/api/segment-reviews';
   const customerRoute=pathname==='/api/customers',recordRoute=pathname.match(/^\/api\/customers\/([1-9]\d*)$/);
-  if(customerRoute||recordRoute){
-    const methods=customerRoute?['GET','HEAD','POST']:['PUT','DELETE'];
+  if(customerRoute||recordRoute||evaluationRoute){
+    const methods=evaluationRoute?['GET','HEAD','PUT']:customerRoute?['GET','HEAD','POST']:['PUT','DELETE'];
     if(!methods.includes(request.method)){response.setHeader('Allow',methods.join(', '));json(response,405,{error:'Method not allowed'});return;}
     try{
-      if(['GET','HEAD'].includes(request.method)){json(response,200,store.read(),request.method==='HEAD');return;}
+      if(['GET','HEAD'].includes(request.method)){json(response,200,(evaluationRoute?evaluations.read():store.read()),request.method==='HEAD');return;}
       // Writes are same-origin JSON requests from the local dashboard. No CORS grants.
       const host=request.headers.host;
       if(!host||!new Set([`127.0.0.1:${server.address().port}`,`localhost:${server.address().port}`]).has(host))fail('Invalid local host.',403);
@@ -33,6 +38,10 @@ const server=http.createServer(async(request,response)=>{
       const payload=await readBody(request),id=recordRoute?Number(recordRoute[1]):null;
       if(!payload||typeof payload!=='object'||Array.isArray(payload))fail('Send a valid customer object.');
       if(recordRoute&&!Number.isSafeInteger(id))fail('Invalid customer ID.');
+      if(evaluationRoute){
+        const result=evaluations.save(payload,key=>strategy.candidates(catalog,store.read()).find(p=>p.key===key));
+        json(response,200,result);return;
+      }
       if(request.method==='DELETE')store.remove(id,payload.revision);
       else store.save(id,payload);
       json(response,request.method==='POST'?201:200,store.read());
