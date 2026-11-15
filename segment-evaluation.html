@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Flightpath | Segment evaluation</title></head><body>
+<div id="flightpath-draft">
+<style>
+:root{color-scheme:light dark}body{margin:0;padding:20px;background:light-dark(#edf1f5,#10151d)}
+
+#flightpath-draft{--fp-bg:light-dark(#f6f7fa,#141820);--fp-panel:light-dark(#fff,#1c222d);--fp-ink:light-dark(#172436,#e7edf6);--fp-sub:light-dark(#526277,#b0bdd0);--fp-line:light-dark(#dce2ea,#364152);--fp-action:light-dark(#244d92,#9bbef9);--fp-soft:light-dark(#eaf0fb,#283850);color:var(--fp-ink);font:14px/1.5 system-ui,sans-serif;background:var(--fp-bg);border:1px solid var(--fp-line);border-radius:14px;overflow:hidden}
+#flightpath-draft *{box-sizing:border-box}
+#flightpath-draft header{padding:22px 24px;background:var(--fp-panel);border-bottom:1px solid var(--fp-line);display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+#flightpath-draft h1{font-size:23px;line-height:1.3;font-weight:500;margin:2px 0}
+#flightpath-draft h2{font-size:17px;font-weight:500;margin:0 0 12px}
+#flightpath-draft p{margin:0}
+#flightpath-draft .eyebrow{font-size:11px;letter-spacing:.13em;color:var(--fp-sub)}
+#flightpath-draft .muted{color:var(--fp-sub);font-size:12px}
+#flightpath-draft .badge{font-size:12px;padding:5px 9px;border-radius:5px;background:var(--fp-soft)}
+#flightpath-draft main{padding:20px 24px;display:grid;gap:20px}
+#flightpath-draft .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+#flightpath-draft label{display:grid;gap:5px;font-size:12px;color:var(--fp-sub)}
+#flightpath-draft select,#flightpath-draft input{font:inherit;color:var(--fp-ink);background:var(--fp-panel);border:1px solid var(--fp-line);border-radius:6px;padding:9px;max-width:100%;min-width:0}
+#flightpath-draft .toolbar label{flex:1;min-width:150px}
+#flightpath-draft button{font:inherit;color:var(--fp-ink);background:var(--fp-panel);border:1px solid var(--fp-line);border-radius:6px;padding:8px 12px;cursor:pointer}
+#flightpath-draft button[aria-pressed="true"]{background:var(--fp-ink);color:var(--fp-panel);border-color:var(--fp-ink)}
+#flightpath-draft .tabs{display:flex;flex-wrap:wrap;gap:8px}
+#flightpath-draft .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#flightpath-draft .stat{padding:16px;background:var(--fp-panel);border:1px solid var(--fp-line);border-radius:8px}
+#flightpath-draft .value{font-size:27px;font-weight:500;font-variant-numeric:tabular-nums}
+#flightpath-draft .table-wrap{overflow-x:auto}
+#flightpath-draft table{width:100%;border-collapse:collapse;font-size:13px;text-align:left}
+#flightpath-draft th{font-size:12px;color:var(--fp-sub);font-weight:500;white-space:nowrap}
+#flightpath-draft th,#flightpath-draft td{padding:12px 9px;border-bottom:1px solid var(--fp-line);vertical-align:top}
+#flightpath-draft td:first-child,#flightpath-draft th:first-child{padding-left:0}
+#flightpath-draft td:last-child,#flightpath-draft th:last-child{padding-right:0}
+#flightpath-draft .segment{min-width:190px}
+#flightpath-draft a{color:var(--fp-action)}
+#flightpath-draft .rows{display:grid;gap:12px}
+#flightpath-draft .company{padding:14px 0;border-bottom:1px solid var(--fp-line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}
+#flightpath-draft .company-name{font-weight:500}
+#flightpath-draft .sources{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px;font-size:12px}
+#flightpath-draft .criteria{display:flex;gap:16px;flex-wrap:wrap}
+#flightpath-draft .criteria label{flex:1;min-width:130px}
+#flightpath-draft .rating{min-width:110px;width:100%}
+#flightpath-draft .notice{border-left:3px solid var(--fp-action);padding-left:12px;color:var(--fp-sub);font-size:12px}
+#flightpath-draft .foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--fp-line);padding-top:14px;font-size:12px;color:var(--fp-sub)}
+#flightpath-draft [hidden]{display:none!important}
+@media(max-width:600px){#flightpath-draft main,#flightpath-draft header{padding:16px}#flightpath-draft .stats{grid-template-columns:1fr}#flightpath-draft .company{grid-template-columns:1fr}#flightpath-draft .toolbar label{min-width:100%;width:100%}}
+@media(pointer:coarse){#flightpath-draft button,#flightpath-draft select,#flightpath-draft input{min-height:44px}}
+</style>
+<header><div><p class="eyebrow">FLIGHTPATH / SEGMENT STRATEGY</p><h1>Which market should we pursue?</h1><p class="muted">Compare research coverage and evaluate monitoring options.</p></div><div><a href="sales.html#customers">← Customer dashboard</a><p class="muted">Team review draft · PR #2 catalog snapshot</p></div></header>
+<main>
+<div class="toolbar">
+<label>Geography<select id="fp-state"><option value="CA">California first</option><option value="all">All researched U.S. locations</option></select></label>
+<label>Documented market<select id="fp-market"><option value="all">All market labels</option><option>Military/defense</option><option>Non-military</option><option>Both</option><option>Not yet verified</option></select></label>
+<label>Company or capability<input id="fp-search" type="search" placeholder="Search the directory"></label>
+</div>
+<div class="stats" aria-live="polite">
+<div class="stat"><p class="muted">Matching researched companies</p><p class="value" id="fp-count"></p></div>
+<div class="stat"><p class="muted">Segments with matching research</p><p class="value" id="fp-segments"></p></div>
+<div class="stat"><p class="muted">States in current results</p><p class="value" id="fp-states"></p></div>
+</div>
+<nav class="tabs" aria-label="Evaluation views">
+<button type="button" data-view="compare" aria-pressed="true">Compare segments</button>
+<button type="button" data-view="options" aria-pressed="false">Evaluate monitoring options</button>
+<button type="button" data-view="directory" aria-pressed="false">Company evidence</button>
+<button type="button" data-view="prospects" aria-pressed="false">Rate prospects</button>
+<button type="button" data-view="shortlist" aria-pressed="false">Team shortlist</button>
+</nav>
+<section id="fp-compare">
+<div id="strategy-comparison"></div>
+<h2>Research coverage by buyer segment</h2>
+<div class="table-wrap"><table><thead><tr><th>Buyer segment</th><th>Companies</th><th>Defense</th><th>Civilian focus</th><th>Both</th><th>Unverified</th><th>Explore</th></tr></thead><tbody id="fp-segment-rows"></tbody></table></div>
+<p class="muted">Counts reflect this catalog and current filters. They are not market size, customer demand, or a sales forecast. Direct Air Force and Navy accounts have no entries in this company-only catalog.</p>
+</section>
+<section id="fp-options" hidden>
+<div class="toolbar"><label>Evaluate for buyer segment<select id="fp-eval-segment"></select></label></div>
+<p class="notice" style="margin:14px 0">Planning worksheet · Enter your team's ratings after discovery. Scores are your judgments; blank ratings stay unassessed. Product fit and buying intent are not verified by directory inclusion.</p>
+<h2>Choose what matters for this segment</h2>
+<div class="criteria">
+<label>Technical fit weight<select id="fp-w-fit"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
+<label>Buyer access weight<select id="fp-w-access"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></label>
+<label>Time to pilot weight<select id="fp-w-pilot"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option></select></label>
+</div>
+<div class="table-wrap"><table><thead><tr><th>Monitoring option</th><th>Technical fit</th><th>Buyer access</th><th>Time to pilot</th><th>Weighted score / 5</th></tr></thead><tbody id="fp-option-rows"></tbody></table></div>
+<p class="muted">Rate 1 = unfavorable to 5 = favorable; for time to pilot, 5 means fastest. Weighted average appears after all three ratings. Weights and ratings are saved separately for each segment.</p>
+<div style="margin-top:16px"><h2>Discovery question</h2><p id="fp-question"></p></div>
+</section>
+<section id="fp-directory" hidden>
+<div class="toolbar"><label>Buyer segment<select id="fp-directory-segment"><option value="all">All buyer segments</option></select></label><button id="fp-export" type="button">Export filtered companies</button></div>
+<p id="fp-directory-count" class="muted" aria-live="polite" style="margin-top:14px"></p>
+<div id="fp-companies" class="rows"></div>
+</section>
+<section id="fp-prospects" hidden></section>
+<section id="fp-shortlist" hidden></section>
+<p id="fp-save-status" class="muted" role="status">Monitoring-option worksheets stay in this browser. Prospect reviews and nominations save to the connected workspace.</p><div class="foot"><span>PR #2 catalog snapshot · Reviewed Nov 14, 2026 · 34 companies · 9 states</span><span>Initial research · No verified buying intent</span></div>
+</main>
+<script src="dashboard/prospect-catalog.js"></script>
+<script>
+(()=>{
+const root=document.getElementById('flightpath-draft');
+const data=FlightpathProspects;
+const segments=['U.S. Air Force','U.S. Navy','Defense contractors','Commercial drone manufacturers','Agricultural drone companies','Infrastructure inspection companies','Civilian drone operators'];
+const names={'U.S. Air Force':'U.S. Air Force','U.S. Navy':'U.S. Navy','Defense contractors':'Defense contractors','Commercial drone manufacturers':'Commercial manufacturers','Agricultural drone companies':'Agricultural drones','Infrastructure inspection companies':'Infrastructure inspection','Civilian drone operators':'Other civilian operators'};
+const questions={
+'U.S. Air Force':'Which aircraft monitoring requirement, test milestone, and procurement pathway would need validation?',
+'U.S. Navy':'Which maritime operating conditions, corrosion or temperature exposure, and qualification requirements should a pilot reproduce?',
+'Defense contractors':'Which aircraft program and integration owner could validate vibration, bending, or temperature sensing?',
+'Commercial drone manufacturers':'Which failure mode causes the most rework or downtime, and where could monitoring fit in the aircraft?',
+'Agricultural drone companies':'How do payload changes and field conditions affect vibration, structural loads, and service intervals?',
+'Infrastructure inspection companies':'Which reliability issue most often interrupts inspections, and what evidence would justify a monitoring pilot?',
+'Civilian drone operators':'Which fleet maintenance decision could improve with measured aircraft condition data?'
+};
+const options=[['vibration','Vibration monitoring','Investigate motor and rotor condition'],['bending','Structural bending monitoring','Investigate airframe strain and loads'],['temperature','Temperature monitoring','Investigate thermal limits and excursions'],['combined','Combined monitoring package','Investigate value versus integration effort']];
+const defaults={geo:'CA',market:'all',search:'',view:'compare',directory:'all',segment:'Commercial drone manufacturers',assessments:{}};
+let state={...defaults};
+const $=s=>root.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const selectOptions=segments.map(s=>'<option value="'+esc(s)+'">'+esc(names[s])+'</option>').join('');
+$('#fp-eval-segment').innerHTML=selectOptions;
+$('#fp-directory-segment').insertAdjacentHTML('beforeend',selectOptions);
+[...new Set(data.map(x=>x.state))].sort().filter(x=>x!=='CA').forEach(s=>$('#fp-state').insertAdjacentHTML('beforeend','<option>'+s+'</option>'));
+function restore(value){const p=value?.privateContent;if(!p||typeof p!=='object')return;state={...defaults,...p,assessments:p.assessments||{}};if(!segments.includes(state.segment))state.segment=defaults.segment;if(!['compare','options','directory','prospects','shortlist'].includes(state.view))state.view='compare';}
+const storageKey='flightpath.segment-evaluation.v1';
+try { restore({privateContent:JSON.parse(localStorage.getItem(storageKey)||'null')}); } catch { /* Browser storage can be unavailable. */ }
+function save(){try { localStorage.setItem(storageKey,JSON.stringify(state)); $('#fp-save-status').textContent='Monitoring-option worksheet and view saved in this browser; prospect reviews use the workspace.'; } catch { $('#fp-save-status').textContent='Browser storage unavailable; monitoring-option worksheets last until this page closes.'; }}
+
+function filtered(){const q=state.search.trim().toLowerCase();return data.filter(x=>(state.geo==='all'||x.state===state.geo)&&(state.market==='all'||x.marketUse===state.market)&&(!q||[x.name,x.city,x.focus,x.segment].join(' ').toLowerCase().includes(q)));}
+function assessment(){return state.assessments[state.segment]||(state.assessments[state.segment]={weights:[3,2,2],ratings:{}});}
+function drawOptions(){const a=assessment();['fit','access','pilot'].forEach((k,i)=>$('#fp-w-'+k).value=a.weights[i]);$('#fp-option-rows').innerHTML=options.map(([key,label,note])=>{const vals=a.ratings[key]||['','',''];const ready=vals.every(v=>Number(v)>=1&&Number(v)<=5);const score=ready?(vals.reduce((n,v,i)=>n+Number(v)*a.weights[i],0)/a.weights.reduce((n,v)=>n+v,0)).toFixed(1):'Unassessed';return '<tr><td class="segment">'+label+'<div class="muted">'+note+'</div></td>'+vals.map((v,i)=>'<td><select class="rating" aria-label="'+esc(label)+' '+['technical fit','buyer access','time to pilot'][i]+'" data-option="'+key+'" data-criterion="'+i+'"><option value="">Unrated</option>'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(Number(v)===n?'selected':'')+'>'+n+'</option>').join('')+'</select></td>').join('')+'<td>'+score+'</td></tr>';}).join('');$('#fp-question').textContent=questions[state.segment];}
+function drawDirectory(rows){const list=rows.filter(x=>state.directory==='all'||x.segment===state.directory);$('#fp-directory-count').textContent=list.length+' companies · Evidence from the PR catalog; sources have not been revalidated in this draft.';$('#fp-companies').innerHTML=list.length?list.map(x=>'<article class="company"><div><p class="company-name">'+esc(x.name)+'</p><p class="muted">'+esc(x.city+', '+x.state+' · '+names[x.segment])+'</p><p>'+esc(x.focus)+'</p><div class="sources"><a href="'+esc(x.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Business evidence ↗</a><a href="'+esc(x.locationSourceUrl)+'" target="_blank" rel="noopener noreferrer">Location evidence ↗</a><span>Reviewed '+esc(x.researchDate)+'</span></div></div><div><span class="badge">'+esc(x.marketUse)+'</span></div></article>').join(''):'<p>No researched companies match these filters. This does not establish that no companies exist.</p>';}
+function render(){
+$('#fp-state').value=state.geo;$('#fp-market').value=state.market;$('#fp-search').value=state.search;$('#fp-eval-segment').value=state.segment;$('#fp-directory-segment').value=state.directory;
+const rows=filtered();$('#fp-count').textContent=rows.length;$('#fp-segments').textContent=new Set(rows.map(x=>x.segment)).size+' / 7';$('#fp-states').textContent=new Set(rows.map(x=>x.state)).size;
+['compare','options','directory','prospects','shortlist'].forEach(v=>{$('#fp-'+v).hidden=state.view!==v;root.querySelector('[data-view="'+v+'"]').setAttribute('aria-pressed',String(state.view===v));});
+$('#fp-segment-rows').innerHTML=segments.map(s=>{const r=rows.filter(x=>x.segment===s);return '<tr><td class="segment">'+esc(names[s])+'</td><td>'+r.length+'</td>'+['Military/defense','Non-military','Both','Not yet verified'].map(m=>'<td>'+r.filter(x=>x.marketUse===m).length+'</td>').join('')+'<td><button type="button" data-explore="'+esc(s)+'">Evaluate</button></td></tr>';}).join('');
+drawOptions();drawDirectory(rows);
+root.dispatchEvent(new CustomEvent('flightpath:filters'));
+}
+root.addEventListener('click',e=>{const view=e.target.closest('[data-view]');const explore=e.target.closest('[data-explore]');if(view){state.view=view.dataset.view;render();save();}if(explore){state.segment=explore.dataset.explore;state.view='options';render();save();}});
+const bindings={'fp-state':'geo','fp-market':'market','fp-directory-segment':'directory','fp-eval-segment':'segment'};
+Object.entries(bindings).forEach(([id,key])=>$('#'+id).addEventListener('change',e=>{state[key]=e.target.value;render();save();}));
+$('#fp-search').addEventListener('input',e=>{state.search=e.target.value;const pos=e.target.selectionStart;render();e.target.focus();e.target.setSelectionRange(pos,pos);save();});
+root.addEventListener('change',e=>{if(e.target.matches('[data-option]')){const a=assessment(),key=e.target.dataset.option;const values=a.ratings[key]||(a.ratings[key]=['','','']);values[Number(e.target.dataset.criterion)]=e.target.value;drawOptions();save();}});
+['fit','access','pilot'].forEach((k,i)=>$('#fp-w-'+k).addEventListener('change',e=>{assessment().weights[i]=Number(e.target.value);drawOptions();save();}));
+$('#fp-export').addEventListener('click',()=>{const list=filtered().filter(x=>state.directory==='all'||x.segment===state.directory);const cols=['name','segment','city','state','marketUse','focus','researchDate','sourceUrl','locationSourceUrl'];const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const csv=[cols.join(','),...list.map(x=>cols.map(k=>cell(x[k])).join(','))].join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='flightpath-filtered-prospects.csv';a.click();URL.revokeObjectURL(url);});
+render();
+})();
+</script>
+</div>
+
+<script src="dashboard/segment-strategy-model.js"></script>
+<script src="dashboard/segment-strategy.js"></script>
+</body></html>

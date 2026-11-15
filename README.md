@@ -1,5 +1,26 @@
 # Flightpath — marketing telemetry and drone sales dashboards
 
+## Segment evaluation — team review
+
+Start `node server.cjs`, open `http://127.0.0.1:8765/sales.html#customers`, and choose **Segment evaluation**. Return with **Customer dashboard**. Use the updated server for team reviews; opening the HTML directly supports only the original monitoring-option worksheets and catalog views, not workspace reviews or CRM comparisons.
+
+**Compare segments:** select the buyer segments, Research catalog or CRM workspace, and Brandon or Josh. The side-by-side matrix shows matching companies, five-criterion review completion, customer-confirmed problems, confirmed buyer access, pilot readiness, nominations and technical blockers. Fractions use unique companies in each segment; a multi-segment CRM company can belong to several columns. Nominations count a company once even if both reviewers nominate it. Catalog and classroom CRM records remain separate. Geography and market filters exclude CRM records whose locations/market labels are unknown; choose all locations and labels to include those records. Top summary cards and the original research coverage table always describe catalog research.
+
+**Rate prospects:** reviews are independent for Brandon and Josh. Each criterion has an optional 1–5 rating, evidence note, evidence type, and source URL. Defaults are technical fit 30%, customer problem 25%, buyer access 20%, pilot readiness 15%, commercial potential 10%; change viewing weights under Prospect scoring weights. Scores require all five evidence-backed ratings; unknowns stay unassessed. Public-source ratings require an HTTP(S) link. Classroom scenarios cannot be recorded as real customer conversations. A compatibility decision requires an explanation. Known incompatibility blocks nomination, and a blocker recorded by either reviewer pauses any existing nomination for that company. Unknown compatibility remains explicitly unverified. Scores are judgments, not calibrated probabilities or independently verified buyer intent.
+
+**Team shortlist:** nominate with a reason and an owned next step. The shortlist shows all nominations across filters/data sources, reviewer, score, evidence coverage, blockers and saved timestamp. CSV export includes the reasons, actions, criterion-level evidence, evidence types, links and active scoring weights. Spreadsheet formula prefixes are neutralized. Unchecking nomination and saving removes only that nomination; the assessment is retained.
+
+Team reviews persist in a **separate SQLite sidecar**, defaulting to `.local/customers.sqlite.evaluations.sqlite` (or `CUSTOMER_DB_PATH + '.evaluations.sqlite'`); override with `EVALUATION_DB_PATH`. Runtime databases are ignored by Git. Windows connected to the **same running server** share reviews after Refresh team reviews. Separate laptops have separate databases; pushing code to GitHub does not synchronize ratings or host the app. Reviewer names are labels, not authentication. The existing loopback-only local demo is not a remotely hosted multi-user CRM.
+
+The revision-guarded `GET/HEAD/PUT /api/segment-reviews` endpoint uses the same JSON, local-host and same-origin write checks as customer edits. Conflicts and connection errors preserve the form; refresh reviews and explicitly save again after reviewing the conflict. The page reads CRM data but never writes customer records. It makes no changes to the existing customer schema, records, marketing or forecasts.
+
+The research catalog is a fixed snapshot of PR #2's 34 companies in `dashboard/prospect-catalog.js` (original `database/us-prospects.json` at commit `5e1ea4b4ed2905cfd4877dcc49c99b60b57895b1`, reviewed November 14, 2026). This does not merge or replace PR #2, import its CRM tracking feature, or refresh sources automatically. Direct Air Force and Navy accounts are absent from that company-only catalog. Private defense contractors remain civilian organizations; market labels describe documented applications. The existing 37-company classroom CRM can demonstrate all seven segments and stays clearly labeled as sample data. Linked catalog records are counted once if a future CRM response supplies `publicProspect.key`.
+
+The original vibration, structural bending, temperature and combined monitoring-option worksheets remain available and saved per segment in each browser. Those worksheets are separate from server-saved prospect reviews. Filter selections, comparison preferences and weights are also browser-local.
+
+Validation: `node --test database/segment-evaluation.test.cjs` covers weighted scoring, unknowns, evidence coverage, deduplication, segment denominators, CSV escaping, persistence, separate reviewers, stale-write rollback, validation, HTTP authorization/origin checks and preservation of the CRM response. Browser checks exercise review forms, nomination, shared reads and cross-reviewer technical blockers.
+
+
 A responsive engineering-style marketing portal for MGMT 3450 Team 1, with a separate B2B/B2G sales workspace. Plain HTML, CSS, JavaScript, and SVG; no package installation, paid dependencies, external fonts, or database required for the demo. All sample data is simulated or fictional.
 
 ## Open the dashboard
