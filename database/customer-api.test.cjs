@@ -13,8 +13,8 @@ test('local server serves database records and dashboard assets while protecting
   });
   const base='http://127.0.0.1:'+port;
   const response=await fetch(base+'/api/customers');assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/application\/json/);
-  const body=await response.json();assert.equal(body.meta.sampleData,true);assert.equal(body.organizations.length,9);assert.equal(body.followups.length,6);
-  for(const asset of ['/','/sales.html','/dashboard/discovery.js','/dashboard/customers.js','/dashboard/customer-model.js','/marketing/app.js'])assert.equal((await fetch(base+asset)).status,200,asset);
+  const body=await response.json();assert.equal(body.prospectDirectory.length,require('./us-prospects.json').entries.length);assert.equal(body.meta.sampleData,true);assert.equal(body.organizations.length,9);assert.equal(body.followups.length,6);
+  for(const asset of ['/','/sales.html','/dashboard/discovery.js','/dashboard/prospect-directory.js','/dashboard/customers.js','/dashboard/customer-model.js','/marketing/app.js'])assert.equal((await fetch(base+asset)).status,200,asset);
   for(const file of ['/.local/customers.sqlite','/database/schema.sql','/database/customer-store.cjs','/.git/config'])assert.equal((await fetch(base+file)).status,404,file);
   assert.equal((await fetch(base+'/api/customers',{method:'POST'})).status,403);
   const head=await fetch(base+'/api/customers',{method:'HEAD'});assert.equal(head.status,200);assert.equal(await head.text(),'');
@@ -38,6 +38,16 @@ test('local server serves database records and dashboard assets while protecting
   const deleted=await write('/api/customers/'+id,'DELETE',{revision:records.meta.revision});assert.equal(deleted.status,200);const final=await deleted.json();
   for(const table of ['organizations','leads','opportunities','engagements','followups','notes','campaigns'])assert.deepEqual(final[table],body[table]);
   const {openStore}=require('./customer-store.cjs');const persisted=openStore(path.join(dir,'test.sqlite'));assert.deepEqual(persisted.read(),final);persisted.close();
+  assert.equal((await fetch(base+'/api/prospects/skydio/track',{method:'POST'})).status,403);
+  assert.equal((await fetch(base+'/api/prospects/skydio/track')).status,405);
+  assert.equal((await write('/api/prospects/no-such-company/track','POST',{revision:final.meta.revision})).status,404);
+  assert.equal((await write('/api/prospects/skydio/track','POST',{revision:final.meta.revision+99})).status,409);
+  assert.equal((await write('/api/prospects/skydio/track','POST',{revision:final.meta.revision},{Origin:'https://untrusted.example'})).status,403);
+  const trackedResponse=await write('/api/prospects/skydio/track','POST',{revision:final.meta.revision});assert.equal(trackedResponse.status,201);
+  const tracked=await trackedResponse.json(),trackedId=tracked.prospectDirectory.find(p=>p.key==='skydio').organizationId;
+  assert.equal(tracked.organizations.length,final.organizations.length+1);assert.equal(tracked.leads.length,final.leads.length);assert.equal(tracked.opportunities.length,final.opportunities.length);
+  assert.equal(tracked.organizations.find(o=>o.id===trackedId).publicProspect.marketUse,'Both');
+  const again=await write('/api/prospects/skydio/track','POST',{revision:tracked.meta.revision});assert.equal(again.status,201);assert.equal((await again.json()).organizations.length,tracked.organizations.length);
 
 });
 

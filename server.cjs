@@ -7,7 +7,7 @@ const {fail}=require('./database/customer-input.cjs');
 const store=openStore(process.env.CUSTOMER_DB_PATH||path.join(__dirname,'.local','customers.sqlite'));
 const root=__dirname;
 const port=Number(process.env.PORT||8765);
-const allowed=new Set(['index.html','sales.html','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
+const allowed=new Set(['index.html','sales.html','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/prospect-directory.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 function json(response,status,body,head=false){response.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});response.end(head?undefined:JSON.stringify(body));}
 async function readBody(request){
@@ -19,9 +19,10 @@ async function readBody(request){
 }
 const server=http.createServer(async(request,response)=>{
   let pathname;try{pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);}catch{response.writeHead(400);response.end('Invalid URL');return;}
+  const prospectRoute=pathname.match(/^\/api\/prospects\/([a-z0-9-]+)\/track$/);
   const customerRoute=pathname==='/api/customers',recordRoute=pathname.match(/^\/api\/customers\/([1-9]\d*)$/);
-  if(customerRoute||recordRoute){
-    const methods=customerRoute?['GET','HEAD','POST']:['PUT','DELETE'];
+  if(customerRoute||recordRoute||prospectRoute){
+    const methods=prospectRoute?['POST']:customerRoute?['GET','HEAD','POST']:['PUT','DELETE'];
     if(!methods.includes(request.method)){response.setHeader('Allow',methods.join(', '));json(response,405,{error:'Method not allowed'});return;}
     try{
       if(['GET','HEAD'].includes(request.method)){json(response,200,store.read(),request.method==='HEAD');return;}
@@ -33,7 +34,8 @@ const server=http.createServer(async(request,response)=>{
       const payload=await readBody(request),id=recordRoute?Number(recordRoute[1]):null;
       if(!payload||typeof payload!=='object'||Array.isArray(payload))fail('Send a valid customer object.');
       if(recordRoute&&!Number.isSafeInteger(id))fail('Invalid customer ID.');
-      if(request.method==='DELETE')store.remove(id,payload.revision);
+      if(prospectRoute)store.trackProspect(prospectRoute[1],payload.revision);
+      else if(request.method==='DELETE')store.remove(id,payload.revision);
       else store.save(id,payload);
       json(response,request.method==='POST'?201:200,store.read());
     }catch(error){
