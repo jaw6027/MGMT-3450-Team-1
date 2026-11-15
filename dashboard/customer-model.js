@@ -3,12 +3,12 @@ const CustomerModel=(()=>{
   const known=value=>typeof value==='number'&&Number.isFinite(value);
   function total(rows,field='value'){const included=rows.filter(r=>known(r[field]));return included.length?included.reduce((n,r)=>n+r[field],0):rows.length?null:0;}
   function weighted(rows){return total(rows.map(p=>({value:known(p.value)&&known(p.probability)?p.value*p.probability:null})));}
-  function select(data,{sector='all',query='',type='all',relationship='all',industry='all',segment='all',owner='all',source='all',qualification='all'}={}){
+  function select(data,{sector='all',query='',type='all',relationship='all',industry='all',segment='all',owner='all',source='all',qualification='all',militaryUse='all'}={}){
     const q=query.trim().toLowerCase();
     const organizations=data.organizations.filter(o=>{
       const contacts=data.leads.filter(l=>l.organizationId===o.id);
-      const text=[o.name,o.industry,...(o.segments||[o.segment]),o.accountOwner,o.leadSource,o.qualificationStatus,o.budgetStatus,o.decisionMakerContacted,o.purchaseTimeline,o.interestLevel,o.customerType,o.relationship,o.needs,...o.interests,...contacts.flatMap(l=>[l.name,l.email,l.phone,l.role,l.buyerRole]),...data.notes.filter(n=>n.organizationId===o.id).map(n=>n.text)];
-      return (sector==='all'||o.sector===sector)&&(type==='all'||o.customerType===type)&&(relationship==='all'||o.relationship===relationship)&&(industry==='all'||o.industry===industry)&&(segment==='all'||(o.segments||[o.segment]).includes(segment))&&(owner==='all'||(o.accountOwner||'')===owner)&&(source==='all'||(o.leadSource||'')===source)&&(qualification==='all'||(o.qualificationStatus||'')===qualification)&&text.some(t=>String(t??'').toLowerCase().includes(q));
+      const text=[o.publicProspect?.marketUse,o.publicProspect?.state,o.publicProspect?.city,o.name,o.industry,...(o.segments||[o.segment]),o.accountOwner,o.leadSource,o.qualificationStatus,o.budgetStatus,o.decisionMakerContacted,o.purchaseTimeline,o.interestLevel,o.customerType,o.relationship,o.needs,...o.interests,...contacts.flatMap(l=>[l.name,l.email,l.phone,l.role,l.buyerRole]),...data.notes.filter(n=>n.organizationId===o.id).map(n=>n.text)];
+      return (militaryUse==='all'||(o.publicProspect?.marketUse||'Not yet verified')===militaryUse)&&(sector==='all'||o.sector===sector)&&(type==='all'||o.customerType===type)&&(relationship==='all'||o.relationship===relationship)&&(industry==='all'||o.industry===industry)&&(segment==='all'||(o.segments||[o.segment]).includes(segment))&&(owner==='all'||(o.accountOwner||'')===owner)&&(source==='all'||(o.leadSource||'')===source)&&(qualification==='all'||(o.qualificationStatus||'')===qualification)&&text.some(t=>String(t??'').toLowerCase().includes(q));
     });
     const ids=new Set(organizations.map(o=>o.id));
     return Object.fromEntries(['leads','opportunities','engagements','followups','notes'].map(key=>[key,data[key].filter(r=>ids.has(r.organizationId))]).concat([['organizations',organizations]]));
@@ -46,3 +46,4 @@ const CustomerModel=(()=>{
   return {select,summary,profile,open,alerts,total,weighted,qualification,forecast};
 })();
 if(typeof module!=='undefined')module.exports=CustomerModel;
+

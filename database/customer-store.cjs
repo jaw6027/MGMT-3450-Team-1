@@ -3,6 +3,7 @@ const {DatabaseSync}=require('node:sqlite');
 const fs=require('node:fs');
 const path=require('node:path');
 const {demoData}=require('./demo.cjs');
+const prospectCatalog=require('./us-prospects.json');
 const {choices,fail,revision,validateCustomer,categoryName,categoryKey}=require('./customer-input.cjs');
 const tables={
   organizations:{id:'INTEGER PRIMARY KEY',name:'TEXT NOT NULL',sector:'TEXT NOT NULL',clearance:'TEXT',customerType:"TEXT NOT NULL CHECK(customerType IN ('Military','Civilian'))",industry:'TEXT NOT NULL',segment:'TEXT NOT NULL',relationship:"TEXT NOT NULL CHECK(relationship IN ('Customer','Prospect'))",interests:'TEXT NOT NULL',needs:'TEXT'},
@@ -76,6 +77,10 @@ function openStore(filename){
       db.exec("UPDATE opportunities SET awardedValue=value WHERE stage IN ('Awarded','Delivery') AND awardedValue IS NULL");
       db.prepare("INSERT INTO metadata VALUES ('forecastMigration','1')").run();
     }
+    // Add a separate sourced directory without modifying any existing CRM records.
+    db.exec('CREATE TABLE IF NOT EXISTS public_prospects (key TEXT PRIMARY KEY, payload TEXT NOT NULL, organizationId INTEGER REFERENCES organizations(id) ON DELETE SET NULL)');
+    const addProspect=db.prepare('INSERT OR IGNORE INTO public_prospects (key,payload) VALUES (?,?)');
+    for(const prospect of prospectCatalog.entries)addProspect.run(prospect.key,JSON.stringify(prospect));
     if(db.prepare('PRAGMA foreign_key_check').all().length)throw new Error('Database migration failed its relationship check.');
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');db.close();throw error;}
@@ -111,9 +116,15 @@ function openStore(filename){
       }
     }
   }
-  return {save(id,payload){
+  const api={save(id,payload,prospectKey=null){
     const input=validateCustomer(payload);
     return transaction(input.revision,()=>{
+      if(prospectKey){
+        const entry=db.prepare('SELECT * FROM public_prospects WHERE key=?').get(prospectKey);
+        if(!entry)fail('Prospect not found.',404);
+        const existing=entry.organizationId||db.prepare('SELECT id FROM organizations WHERE lower(trim(name))=lower(trim(?))').get(input.company.name)?.id;
+        if(existing){db.prepare('UPDATE public_prospects SET organizationId=? WHERE key=?').run(existing,prospectKey);return existing;}
+      }
       for(const c of input.newCategories)addCategory(c.kind,c.name);
       const selectedSegments=input.segments.map(name=>category('segment',name));
       const company={...input.company,industry:category('industry',input.company.industry).name,segment:selectedSegments[0].name,interests:JSON.stringify(input.company.interests)};
@@ -138,8 +149,15 @@ function openStore(filename){
       saveRows('followups',id,input.followups);
       if(input.note)db.prepare('INSERT INTO notes (organizationId,date,author,text) VALUES (?,?,?,?)').run(id,new Date().toISOString().slice(0,10),input.note.author,input.note.text);
       if(input.communication)db.prepare('INSERT INTO engagements (organizationId,type,date,summary) VALUES (?,?,?,?)').run(id,input.communication.type,input.communication.date,input.communication.summary);
+      if(prospectKey)db.prepare('UPDATE public_prospects SET organizationId=? WHERE key=?').run(id,prospectKey);
       return id;
     });
+  },trackProspect(key,expectedRevision){
+    const row=db.prepare('SELECT payload FROM public_prospects WHERE key=?').get(key);
+    if(!row)fail('Prospect not found.',404);
+    const p=JSON.parse(row.payload);
+    const industry=p.segment==='Defense contractors'?'Aerospace & defense':p.segment==='Agricultural drone companies'?'Agriculture':p.segment==='Infrastructure inspection companies'?'Infrastructure inspection':p.segment==='Civilian drone operators'?'Drone operations':'Drone manufacturing';
+    return api.save(null,{revision:expectedRevision,company:{name:p.name,sector:'Civilian Commercial',customerType:'Civilian',relationship:'Prospect',industry,segments:[p.segment],interests:[],needs:'',qualificationStatus:'New Lead'},note:{author:'Public-source research',text:`Public-source prospect, not a confirmed customer or sales-qualified lead. Documented market focus: ${p.marketUse}. Business: ${p.focus}. Researched U.S. location: ${p.city}, ${p.state}. Source reviewed: ${p.researchDate}. Capability source: ${p.sourceUrl}. Location source: ${p.locationSourceUrl}. Validate location, aircraft compatibility, contacts and purchasing interest before outreach.`}},key);
   },remove(id,expectedRevision){
     return transaction(expectedRevision,()=>{
       companyExists(id);
@@ -154,11 +172,15 @@ function openStore(filename){
   },read(){
     const data={meta:{sampleData:true,currency:'USD',revision:currentRevision(),choices,seededOn:db.prepare("SELECT value FROM metadata WHERE key='seededOn'").get().value}};
     for(const name of Object.keys(tables))data[name]=db.prepare(`SELECT * FROM ${name} ORDER BY id`).all().map(row=>Object.fromEntries(Object.entries(row).map(([key,value])=>[key,arrays.has(key)?JSON.parse(value):key==='completed'?Boolean(value):value])));
+    data.prospectDirectory=db.prepare('SELECT * FROM public_prospects ORDER BY key').all().map(row=>({...JSON.parse(row.payload),organizationId:row.organizationId}));
+    data.organizations=data.organizations.map(o=>({...o,publicProspect:data.prospectDirectory.find(p=>p.organizationId===o.id)||null}));
     const categories=db.prepare('SELECT * FROM customer_categories ORDER BY name COLLATE NOCASE').all();
     data.meta.choices={...choices,industries:categories.filter(c=>c.kind==='industry').map(c=>c.name),segments:categories.filter(c=>c.kind==='segment').map(c=>c.name)};
     const memberships=db.prepare('SELECT s.organizationId,c.name FROM organization_segments s JOIN customer_categories c ON c.id=s.categoryId ORDER BY s.position,c.name').all();
     data.organizations=data.organizations.map(o=>({...o,industry:category('industry',o.industry).name,segments:memberships.filter(s=>s.organizationId===o.id).map(s=>s.name)}));
     return data;
   },close(){db.close();}};
+  return api;
 }
 module.exports={openStore};
+
