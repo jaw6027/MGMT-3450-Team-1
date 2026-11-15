@@ -66,3 +66,25 @@ test('follow-up alerts separate overdue, today-to-Sunday, completed tasks and mi
   assert.equal(model.alerts(custom,'2026-11-16').weekEnd,'2026-11-22');
   assert.deepEqual(model.alerts({organizations:[],followups:[]},'2026-11-13'),{overdue:0,dueThisWeek:0,withoutFollowup:0,weekEnd:'2026-11-15'});
 });
+
+test('search terms and combined filters find fictional prospects across every requested field',()=>{
+ const {openStore}=require('../database/customer-store.cjs');const store=openStore(':memory:',{expandDemo:true});
+ try{
+  const expanded=store.read();assert.equal(model.select(expanded).organizations.length,37);
+  assert.equal(model.select(expanded,{query:'  COBALT  '}).organizations.length,1);
+  const result=model.select(expanded,{query:'Vanessa research',industry:'Aerospace & defense',segment:'U.S. Air Force',type:'Military',owner:'Vanessa',source:'Referral',qualification:'New Lead',stage:'Research',relationship:'Prospect'});
+  assert.equal(result.organizations.length,1);assert.match(result.organizations[0].name,/Cobalt/);assert.equal(result.opportunities.length,1);assert.equal(result.opportunities[0].stage,'Research');
+  assert.equal(model.select(expanded,{query:'military',stage:'Evaluation'}).organizations.length,3);
+  for(const segment of expanded.meta.choices.segments)assert.ok(model.select(expanded,{segment,relationship:'Prospect'}).organizations.length>=4);
+  assert.equal(model.select(expanded,{query:'no-such-prospect'}).organizations.length,0);
+  assert.equal(model.select(expanded,{type:'Civilian',segment:'U.S. Air Force'}).organizations.length,0);
+ }finally{store.close();}
+});
+test('sales-stage filters include each company once and scope opportunity summaries without hiding profile history',()=>{
+ const {openStore}=require('../database/customer-store.cjs');const store=openStore(':memory:');
+ try{
+  const records=store.read(),selected=model.select(records,{stage:'Awarded'});
+  assert.deepEqual(selected.organizations.map(o=>o.id),[3]);assert.equal(selected.opportunities.length,1);assert.equal(selected.opportunities[0].stage,'Awarded');assert.equal(model.summary(selected).active,0);assert.equal(model.summary(selected).awarded,60000);assert.equal(model.profile(records,3).opportunities.length,2);
+  assert.deepEqual(model.select(records,{stage:'none'}).organizations.map(o=>o.id),[7,8,9]);assert.equal(model.select(records,{stage:'none'}).opportunities.length,0);
+ }finally{store.close();}
+});

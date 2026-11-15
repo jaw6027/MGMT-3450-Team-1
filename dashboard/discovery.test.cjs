@@ -7,11 +7,11 @@ const discovery=require('./discovery.js');
 const {demoData}=require('../database/demo.cjs');
 const {openStore}=require('../database/customer-store.cjs');
 
-test('all six target markets link only their member organizations, including multi-segment accounts once per market',()=>{
+test('all seven target markets link only their member organizations, including multi-segment accounts once per market',()=>{
   const data=demoData();
   data.organizations[0].segments=['U.S. Air Force','Defense contractors'];
   const rows=discovery.select(data);
-  assert.equal(rows.length,6);
+  assert.equal(rows.length,7);
   assert.deepEqual(rows.find(m=>m.id==='air-force').accounts.map(o=>o.id),[1]);
   assert.deepEqual(rows.find(m=>m.id==='defense').accounts.map(o=>o.id),[1,4]);
   assert.equal(rows.find(m=>m.id==='defense').customerType,'Civilian');
@@ -25,9 +25,9 @@ test('search finds guidance, secondary contact details, company names and no-mat
   assert.deepEqual(discovery.select(data,{query:'sam.rivera@example.com'}).flatMap(m=>m.accounts.map(o=>o.id)),[1]);
   assert.deepEqual(discovery.select(data,{query:'Atlas Drone'}).map(m=>m.id),['manufacturers']);
   assert.deepEqual(discovery.select(data,{query:'no-such-customer'}),[]);
-  assert.equal(discovery.select(null).length,6);
+  assert.equal(discovery.select(null).length,7);
   assert.match(discovery.render(null,{},false),/Customer records unavailable/);
-  assert.equal((discovery.render(null,{},false).match(/data-discovery-add="[^"]+" disabled/g)||[]).length,6);
+  assert.equal((discovery.render(null,{},false).match(/data-discovery-add="[^"]+" disabled/g)||[]).length,7);
 });
 
 test('market drafts save through the existing database and persist without invented customer facts',()=>{
@@ -44,7 +44,7 @@ test('market drafts save through the existing database and persist without inven
     }
     store.close();store=openStore(file);
     const data=store.read(),added=data.organizations.filter(o=>o.name.startsWith('Sample '));
-    assert.equal(added.length,6);
+    assert.equal(added.length,7);
     for(const o of added){assert.equal(o.relationship,'Prospect');assert.equal(o.qualificationStatus,'New Lead');assert.ok(!o.budgetStatus);assert.ok(!o.needs);assert.equal(data.leads.filter(l=>l.organizationId===o.id).length,0);}
     assert.equal(discovery.draft('unknown'),null);
     assert.equal(discovery.draft('defense','Navy').sector,'Navy');

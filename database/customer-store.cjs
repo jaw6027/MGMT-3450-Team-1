@@ -14,7 +14,7 @@ const tables={
   notes:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',date:'TEXT NOT NULL',author:'TEXT NOT NULL',text:'TEXT NOT NULL'}
 };
 const arrays=new Set(['interests','sectors','leadIds']);
-function openStore(filename){
+function openStore(filename,{expandDemo=false}={}){
   if(filename!==':memory:')fs.mkdirSync(path.dirname(filename),{recursive:true});
   const db=new DatabaseSync(filename);
   db.exec('PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
@@ -79,6 +79,7 @@ function openStore(filename){
     if(db.prepare('PRAGMA foreign_key_check').all().length)throw new Error('Database migration failed its relationship check.');
     db.exec('COMMIT');
   }catch(error){db.exec('ROLLBACK');db.close();throw error;}
+  if(expandDemo){try{require('./expanded-demo.cjs').expandDemo(db);}catch(error){db.close();throw error;}}
   function addCategory(kind,name){
     const normalized=categoryName(name,'Category name'),key=categoryKey(normalized);
     db.prepare('INSERT OR IGNORE INTO customer_categories (kind,name,normalizedName) VALUES (?,?,?)').run(kind,normalized,key);

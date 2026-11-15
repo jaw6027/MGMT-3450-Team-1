@@ -78,15 +78,15 @@ The architecture diagram describes the intended upstream system. This repository
 
 ### Find potential buyers
 
-In the sales workspace, select **Find buyers** to explore six target markets: U.S. Air Force, U.S. Navy, defense contractors, commercial drone manufacturers, agricultural drone companies, and infrastructure inspection businesses. Each market includes a customer problem to investigate, suggested buyer roles, places to begin research, a discovery question, and an editable-in-practice conversation suggestion to review before using externally. The app never sends outreach messages.
+In the sales workspace, select **Find buyers** to explore seven target markets: U.S. Air Force, U.S. Navy, defense contractors, commercial drone manufacturers, agricultural drone companies, infrastructure inspection businesses, and other civilian drone operators. Each market includes a customer problem to investigate, suggested buyer roles, places to begin research, a discovery question, and an editable-in-practice conversation suggestion to review before using externally. The app never sends outreach messages.
 
-The market cards link to matching companies in the existing customer database. Search matches either market guidance or customer details (including secondary contacts); a guidance match shows the market's member accounts, while a customer-only match shows only those matching accounts. The sector filter applies to both markets and member accounts. Defense contractors can target any sector and remain classified as civilian companies. Multi-segment organizations can appear on multiple cards; these are market memberships, not additive company counts. The customer directory remains the full customer list, including segments outside these six markets.
+The market cards link to matching companies in the existing customer database. Search matches either market guidance or customer details (including secondary contacts); a guidance match shows the market's member accounts, while a customer-only match shows only those matching accounts. The sector filter applies to both markets and member accounts. Defense contractors can target any sector and remain classified as civilian companies. Multi-segment organizations can appear on multiple cards; these are market memberships, not additive company counts. The customer directory remains the full customer list, including segments outside these seven markets.
 
 Choose **Add prospect in this market** to open the existing customer form with suggested industry, segment, customer type, target sector, and sensor interests selected. Review the suggested fields and enter the company name. Needs, named contacts, budget, decision-maker status, buying timeline, and win probability are never invented. Saving uses the same validated API and persistent SQLite database and returns to the customer dashboard. Cancel makes no database changes. If the database is unavailable, guidance stays readable while record counts and prospect creation are unavailable.
 
-The plain-language introduction explains vibration, structural bending, and temperature. All guidance is illustrative; it is not verified buyer intent, a real procurement notice, or a product-performance claim. The nine seeded organizations and eleven contacts remain fictional. No schema migration or seed replacement is needed for this view.
+The plain-language introduction explains vibration, structural bending, and temperature. All guidance is illustrative; it is not verified buyer intent, a real procurement notice, or a product-performance claim. The original seeded records and the expanded prospect scenarios remain fictional. No schema migration or seed replacement is needed for this view.
 
-Validation for buyer discovery covers all six markets, sector and membership handling, secondary-contact search, escaped customer text, missing database states, and persistent creation of a prospect from every market. The API test also verifies the discovery script is served. Automated tests pass; desktop/mobile visual browser verification could not run in the restricted execution environment.
+Validation for buyer discovery covers all seven markets, sector and membership handling, secondary-contact search, escaped customer text, missing database states, and persistent creation of a prospect from every market. The API test also verifies the discovery script is served. Automated tests and desktop/mobile browser verification pass, including market cards and prospect creation.
 
 Run `node server.cjs` from the repository root, then open `sales.html` through the local server. **Customers** is the default sales-workspace view. The marketing dashboard remains at `index.html`; its assets and calculations are unchanged.
 
@@ -105,7 +105,7 @@ Features:
 - Confirmed company deletion removes its linked contacts, opportunities, follow-ups, notes, and communications; campaigns remain with the deleted contacts removed.
 - Explicit loading, unavailable-database, and no-match states. Connection failures do not display fabricated zero totals or silently substitute static data.
 
-The sample database includes nine fictional organizations across all seven target segments and eleven fictional contacts. There is one existing customer and eight prospects. Private defense contractors are classified as civilian businesses even when they target military markets. Sector represents the existing market grouping, while customer type identifies the organization itself. All company, contact, deal, probability, and activity information is illustrative. Contact emails use `example.com`, and phone numbers use the fictional 202-555-01xx range.
+With the expanded scenario pack, the sample database includes 37 fictional organizations across all seven target segments and 39 fictional contacts. There is one fictional existing-customer example and 36 prospects. The original nine organizations and eleven contacts are retained. Private defense contractors are classified as civilian businesses even when they target military markets. Sector represents the existing market grouping, while customer type identifies the organization itself. All company, contact, deal, probability, and activity information is illustrative. Original contact emails use `example.com`, and their phone numbers use the fictional 202-555-01xx range. Expanded scenarios use generic contact labels, reserved `example.invalid` addresses, and blank phone numbers.
 
 Potential revenue is **open opportunity value in USD**, not earned revenue. Awarded, delivery, lost, and cancelled opportunities are excluded; weighted pipeline multiplies each open value by its illustrative win probability. Existing customers may also have new opportunities. Qualified leads means contacts explicitly marked **Sales qualified**. Company-level counts never count each contact as a separate company.
 
@@ -208,3 +208,36 @@ The in-place SQLite migration adds qualification and outcome fields. SQLite requ
 
 Tests cover nullable amounts/probabilities, explicit zero, partial/unknown totals, weighted estimates, separation of awarded amounts, monthly and quarterly boundaries, past/undated/beyond-horizon deals, qualification summaries, won/lost reason validation, legacy migration and record preservation, restart persistence, and the existing customer/marketing workflows. Desktop and mobile browser checks additionally exercise the new forms, financial labels, charts, qualification filters, missing-data panels, CSV export, and existing closed records.
 
+
+## Expanded fictional prospects and interactive customer search
+
+The standard Node server now loads a **one-time additive pack of 28 fictional prospects** from `database/expanded-demo.cjs`. On the original nine-record database this produces 37 organizations, including 36 prospects. Existing records and values are retained. The added organizations have **Fictional —** in their names, remain Prospects, and have explicit fictional-scenario notes. Contacts are generic Demo Contact labels, use reserved `example.invalid` email addresses, and have no phone numbers. Their qualifications, budgets, pipeline amounts, and dates are classroom scenarios, not verified buying intent or actual revenue.
+
+| Segment | Organizations after expansion | Potential customers / prospects |
+| --- | ---: | ---: |
+| U.S. Air Force | 5 | 5 |
+| U.S. Navy | 6 | 6 |
+| Defense contractors | 5 | 5 |
+| Commercial drone manufacturers | 5 | 5 |
+| Agricultural drone companies | 5 | 5 |
+| Infrastructure inspection companies | 5 | 4 |
+| Other civilian drone operators | 6 | 6 |
+
+These counts assume the original sample database; any user-added records remain alongside them. Other civilian drone operators uses the existing canonical segment `Civilian drone operators`, preventing a duplicate category. The original fictional existing-customer example remains unchanged; no new organization is presented as an actual customer. Private defense contractors remain Civilian businesses.
+
+The expansion uses an atomic SQLite transaction and a version marker in metadata. It increments the database revision so an older browser cannot overwrite it unknowingly. Restarts do not duplicate entries, overwrite edits, or recreate deliberately deleted demo prospects. `.local/customers.sqlite` is not replaced. The pre-expansion backup is retained under `.local/backups/` in this environment. For a separate deployment that should not install fictional prospect data, set `CUSTOMER_DEMO_EXPANSION=0` before its first server startup; this does not remove already-loaded records. Low-level `openStore()` callers opt into the scenario pack with `{expandDemo:true}`; the standard server enables it by default.
+
+### Demonstrating search to Josh, Brandon, or Professor Woods
+
+1. Start `node server.cjs` and open the **Customers** view through the server. Refresh an already-open page after upgrading.
+2. Use the prominent **Search and filter prospects** panel. Type `Cobalt` to find a specific fictional company, or enter words such as `military research`. Matching ignores case and extra spaces; every search word must appear somewhere in the company's searchable information.
+3. Select a customer segment to see several prospects. Choose Military or Civilian independently of segment or industry.
+4. Select a sales pipeline stage, such as Evaluation. All eight dropdown filters can be combined: customer type, relationship, industry, segment, account owner, lead source, company qualification, and sales stage. The separate market-sector dropdown remains available.
+5. Try the example buttons **Air Force prospects**, **Civilian manufacturers**, and **Navy evaluation**. These only change filters and never write to the database.
+6. Choose **Clear search & filters** to return to all customers. A no-match result also offers a reset action.
+
+Results update immediately as the search term or selections change; no search submission is required. The live result count and customer table appear near the controls, with the table in its own scrollable region. Select any company to review or edit its full profile. Existing editing, contact management, notes, follow-ups, forecasts, and CSV export remain available.
+
+Search covers company names, industries, all assigned segments, military/civilian type, owners, lead sources, qualification, contact details and buyer roles, customer needs and notes, and opportunity names/stages/owners. Multiple filters combine with AND. Sales-stage filtering includes a company if any of its opportunities matches; each company appears once. Stage-filtered monetary summaries use only matching opportunities, so a company profile may show additional history beyond the current filter. Choosing No opportunity recorded finds companies without any opportunities. Closed-stage selections keep awarded values separate from potential revenue.
+
+The shared **Find buyers** workspace is preserved and now covers all seven markets, including other civilian operators. All generated scenario amounts remain estimates and are clearly labeled as demonstration data. Tests cover the expanded counts, preserved original records, repeat startup/deletion behavior, atomic rollback, combined filters, stage-aware summaries, no-match states, and desktop/mobile workflows.

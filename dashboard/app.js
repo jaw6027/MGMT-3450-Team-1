@@ -5,7 +5,7 @@
   const $ = id => document.getElementById(id);
   let view = 'customers';
   const titles = {
-    discovery:['Find buyers','Find the right people. Start a useful conversation.','Explore six target markets and build your customer list, one relationship at a time.'],
+    discovery:['Find buyers','Find the right people. Start a useful conversation.','Explore seven target markets and build your customer list, one relationship at a time.'],
     customers:['Customers','Know your customers. Grow your opportunities.','Customer relationships, sales potential, and the next conversation — in one place.'],
     overview:['Overview','A clearer view of your pipeline.','From first contact to contract award. Keep every opportunity in sight.'],
     campaigns:['Campaigns','Make every touchpoint count.','Explore campaign audiences, activity, and planned investment.'],
@@ -72,10 +72,17 @@
     $('export').disabled=view==='customers'&&!CustomerDashboard.isReady();
     $('export').textContent=view==='customers'?'↓ Export customers':'↓ Export opportunities';
     $('dashboard').innerHTML=view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
+    $('customer-search-panel').classList.toggle('customer-search-active',view==='customers');
+    $('customer-search-heading').hidden=view!=='customers';
+    $('customer-filter-slot').innerHTML=view==='customers'?CustomerDashboard.renderFilters():'';
+    $('customer-match-count').hidden=view!=='customers';
+    $('customer-match-count').textContent=view==='customers'?CustomerDashboard.resultCount():'';
   }
   function navigate(next) {view=next;history.replaceState(null,'','#'+next);render();}
   document.querySelector('nav').addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(button)navigate(button.dataset.view);});
   document.querySelector('.brand').addEventListener('click',event=>{event.preventDefault();navigate('overview');});
+  $('customer-filter-slot').addEventListener('change',event=>CustomerDashboard.change(event));
+  $('customer-filter-slot').addEventListener('click',event=>CustomerDashboard.click(event));
   $('dashboard').addEventListener('change',event=>CustomerDashboard.change(event));
   $('dashboard').addEventListener('click',event=>{
     const prospect=event.target.closest('[data-discovery-add]');
