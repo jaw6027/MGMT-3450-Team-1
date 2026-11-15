@@ -7,7 +7,7 @@ const {fail}=require('./database/customer-input.cjs');
 const store=openStore(process.env.CUSTOMER_DB_PATH||path.join(__dirname,'.local','customers.sqlite'),{expandDemo:process.env.CUSTOMER_DEMO_EXPANSION!=='0'});
 const root=__dirname;
 const port=Number(process.env.PORT||8765);
-const allowed=new Set(['index.html','sales.html','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
+const allowed=new Set(['index.html','sales.html','segment-evaluation.html','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
 function json(response,status,body,head=false){response.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});response.end(head?undefined:JSON.stringify(body));}
 async function readBody(request){

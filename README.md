@@ -1,5 +1,15 @@
 # Flightpath — marketing telemetry and drone sales dashboards
 
+## Segment evaluation — team review draft
+
+Start `node server.cjs`, open `http://127.0.0.1:8765/sales.html#customers`, and choose **Segment evaluation** in the top bar. The separate page is also available at `http://127.0.0.1:8765/segment-evaluation.html` or directly as a local HTML file. Use **Customer dashboard** to return to the existing workspace.
+
+Compare research coverage across seven buyer segments; filter by state, documented military-market label, and company/capability. The company evidence view includes business/location source links and a filtered CSV export. The page embeds a fixed snapshot of PR #2's 34-company catalog (`database/us-prospects.json` at commit `5e1ea4b4ed2905cfd4877dcc49c99b60b57895b1`, reviewed November 14, 2026). It does not require PR #2 to be merged and does not import its CRM tracking feature. It does not refresh automatically or read the customer database. Coverage is incomplete; company counts are not market size or verified buying intent. Direct Air Force and Navy accounts are absent from this company-only catalog. Private defense contractors remain civilian organizations; military-market labels describe documented applications.
+
+Use **Evaluate monitoring options** to compare vibration, structural bending, temperature, and a combined monitoring package for each segment. Enter ratings from 1 (unfavorable) to 5 (favorable) for technical fit, buyer access, and time to pilot; 5 for time to pilot means fastest. The weighted average appears only after all three ratings are entered. Ratings and weights are user judgments, not researched company facts. Each segment has its own worksheet. Ratings and filter selections are saved only in the reviewer's browser when browser storage is available; they are not synchronized with teammates, GitHub, or the CRM. Clearing browser storage removes those saved ratings.
+
+The existing customer dashboard, customer data, marketing views, and forecasts retain their current behavior. The integration adds a navigation link and permits the new static page through the local server; it makes no database or API changes.
+
 A responsive engineering-style marketing portal for MGMT 3450 Team 1, with a separate B2B/B2G sales workspace. Plain HTML, CSS, JavaScript, and SVG; no package installation, paid dependencies, external fonts, or database required for the demo. All sample data is simulated or fictional.
 
 ## Open the dashboard
