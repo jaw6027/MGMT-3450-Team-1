@@ -45,11 +45,13 @@
 @media(max-width:600px){#flightpath-draft main,#flightpath-draft header{padding:16px}#flightpath-draft .stats{grid-template-columns:1fr}#flightpath-draft .company{grid-template-columns:1fr}#flightpath-draft .toolbar label{min-width:100%;width:100%}}
 @media(pointer:coarse){#flightpath-draft button,#flightpath-draft select,#flightpath-draft input{min-height:44px}}
 </style>
-<header><div><p class="eyebrow">FLIGHTPATH / SEGMENT STRATEGY</p><h1>Which market should we pursue?</h1><p class="muted">Explore customer groups, compare prospect readiness, and prioritize outreach.</p></div><div><a href="sales.html#customers">← Customer dashboard</a><p class="muted">Team review draft · PR #2 catalog snapshot</p></div></header>
+<header><div><p class="eyebrow">FLIGHTPATH / SEGMENT STRATEGY</p><h1>Which market should we pursue?</h1><p class="muted">Explore customer groups, compare prospect readiness, and prioritize outreach.</p></div><div><a href="sales.html#customers">← Customer dashboard</a><p class="muted">Real-company research · California review first</p></div></header>
 <main>
 <div class="toolbar">
 <label>Geography<select id="fp-state"><option value="CA">California first</option><option value="all">All researched U.S. locations</option></select></label>
 <label>Documented market<select id="fp-market"><option value="all">All market labels</option><option>Military/defense</option><option>Non-military</option><option>Both</option><option>Not yet verified</option></select></label>
+<label>Source verification<select id="fp-quality"><option value="all">All verification statuses</option><option>Sources checked</option><option>Not rechecked</option><option>Recheck due</option><option>Needs recheck</option><option>Public contact listed</option></select></label>
+<label>Outreach status<select id="fp-outreach"><option value="all">All outreach statuses</option><option>Not contacted</option><option>Researching</option><option>Contacted</option><option>In discussion</option><option>Not a fit</option><option>Do not contact</option></select></label>
 <label>Company or capability<input id="fp-search" type="search" placeholder="Search the directory"></label>
 </div>
 <div class="stats" aria-live="polite">
@@ -60,7 +62,7 @@
 <nav class="tabs" aria-label="Evaluation views">
 <button type="button" data-view="compare" aria-pressed="true">Compare segments</button>
 <button type="button" data-view="options" aria-pressed="false">Evaluate monitoring options</button>
-<button type="button" data-view="directory" aria-pressed="false">Company evidence</button>
+<button type="button" data-view="directory" aria-pressed="false">Real prospect database</button>
 <button type="button" data-view="prospects" aria-pressed="false">Rate prospects</button>
 <button type="button" data-view="shortlist" aria-pressed="false">Team shortlist</button>
 </nav>
@@ -90,9 +92,10 @@
 </section>
 <section id="fp-prospects" hidden></section>
 <section id="fp-shortlist" hidden></section>
-<p id="fp-save-status" class="muted" role="status">Monitoring-option worksheets stay in this browser. Prospect reviews and nominations save to the connected workspace.</p><div class="foot"><span>PR #2 catalog snapshot · Reviewed Nov 14, 2026 · 34 companies · 9 states</span><span>Initial research · No verified buying intent</span></div>
+<p id="fp-save-status" class="muted" role="status">Monitoring-option worksheets stay in this browser. Prospect reviews and nominations save to the connected workspace.</p><div class="foot"><span>34-company starting catalog · 19 California records checked Nov 15, 2026 · 15 await recheck</span><span>Initial research · No verified buying intent</span></div>
 </main>
 <script src="dashboard/prospect-catalog.js"></script>
+<script src="dashboard/prospect-model.js"></script>
 <script>
 (()=>{
 const root=document.getElementById('flightpath-draft');
@@ -109,7 +112,7 @@ const questions={
 'Civilian drone operators':'Which fleet maintenance decision could improve with measured aircraft condition data?'
 };
 const options=[['vibration','Vibration monitoring','Investigate motor and rotor condition'],['bending','Structural bending monitoring','Investigate airframe strain and loads'],['temperature','Temperature monitoring','Investigate thermal limits and excursions'],['combined','Combined monitoring package','Investigate value versus integration effort']];
-const defaults={geo:'CA',market:'all',search:'',view:'compare',directory:'all',segment:'Commercial drone manufacturers',assessments:{}};
+const defaults={quality:'all',outreach:'all',geo:'CA',market:'all',search:'',view:'compare',directory:'all',segment:'Commercial drone manufacturers',assessments:{}};
 let state={...defaults};
 const $=s=>root.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -120,14 +123,15 @@ $('#fp-directory-segment').insertAdjacentHTML('beforeend',selectOptions);
 function restore(value){const p=value?.privateContent;if(!p||typeof p!=='object')return;state={...defaults,...p,assessments:p.assessments||{}};if(!segments.includes(state.segment))state.segment=defaults.segment;if(!['compare','options','directory','prospects','shortlist'].includes(state.view))state.view='compare';}
 const storageKey='flightpath.segment-evaluation.v1';
 try { restore({privateContent:JSON.parse(localStorage.getItem(storageKey)||'null')}); } catch { /* Browser storage can be unavailable. */ }
+if(location.hash==='#directory')state.view='directory';
 function save(){try { localStorage.setItem(storageKey,JSON.stringify(state)); $('#fp-save-status').textContent='Monitoring-option worksheet and view saved in this browser; prospect reviews use the workspace.'; } catch { $('#fp-save-status').textContent='Browser storage unavailable; monitoring-option worksheets last until this page closes.'; }}
 
-function filtered(){const q=state.search.trim().toLowerCase();return data.filter(x=>(state.geo==='all'||x.state===state.geo)&&(state.market==='all'||x.marketUse===state.market)&&(!q||[x.name,x.city,x.focus,x.segment].join(' ').toLowerCase().includes(q)));}
+function filtered(){const q=state.search.trim().toLowerCase();return data.filter(x=>(state.geo==='all'||x.state===state.geo)&&(state.market==='all'||x.marketUse===state.market)&&ProspectModel.matches(x,state.quality)&&(state.outreach==='all'||(x.outreachStatus||'Not contacted')===state.outreach)&&(!q||[x.name,x.city,x.focus,x.segment,x.contactEmail,x.contactPhone,x.notes].join(' ').toLowerCase().includes(q)));}
 function assessment(){return state.assessments[state.segment]||(state.assessments[state.segment]={weights:[3,2,2],ratings:{}});}
 function drawOptions(){const a=assessment();['fit','access','pilot'].forEach((k,i)=>$('#fp-w-'+k).value=a.weights[i]);$('#fp-option-rows').innerHTML=options.map(([key,label,note])=>{const vals=a.ratings[key]||['','',''];const ready=vals.every(v=>Number(v)>=1&&Number(v)<=5);const score=ready?(vals.reduce((n,v,i)=>n+Number(v)*a.weights[i],0)/a.weights.reduce((n,v)=>n+v,0)).toFixed(1):'Unassessed';return '<tr><td class="segment">'+label+'<div class="muted">'+note+'</div></td>'+vals.map((v,i)=>'<td><select class="rating" aria-label="'+esc(label)+' '+['technical fit','buyer access','time to pilot'][i]+'" data-option="'+key+'" data-criterion="'+i+'"><option value="">Unrated</option>'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(Number(v)===n?'selected':'')+'>'+n+'</option>').join('')+'</select></td>').join('')+'<td>'+score+'</td></tr>';}).join('');$('#fp-question').textContent=questions[state.segment];}
-function drawDirectory(rows){const list=rows.filter(x=>state.directory==='all'||x.segment===state.directory);$('#fp-directory-count').textContent=list.length+' companies · Evidence from the PR catalog; sources have not been revalidated in this draft.';$('#fp-companies').innerHTML=list.length?list.map(x=>'<article class="company"><div><p class="company-name">'+esc(x.name)+'</p><p class="muted">'+esc(x.city+', '+x.state+' · '+names[x.segment])+'</p><p>'+esc(x.focus)+'</p><div class="sources"><a href="'+esc(x.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Business evidence ↗</a><a href="'+esc(x.locationSourceUrl)+'" target="_blank" rel="noopener noreferrer">Location evidence ↗</a><span>Reviewed '+esc(x.researchDate)+'</span></div></div><div><span class="badge">'+esc(x.marketUse)+'</span></div></article>').join(''):'<p>No researched companies match these filters. This does not establish that no companies exist.</p>';}
+function drawDirectory(rows){const list=rows.filter(x=>state.directory==='all'||x.segment===state.directory);$('#fp-directory-count').textContent=list.length+' companies · Public-source prospects; buying intent remains unknown.';$('#fp-companies').innerHTML=list.length?list.map(x=>'<article class="company"><div><p class="company-name">'+esc(x.name)+'</p><p class="muted">'+esc(x.city+', '+x.state+' · '+names[x.segment])+'</p><p>'+esc(x.focus)+'</p><div class="sources"><a href="'+esc(x.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Business evidence ↗</a><a href="'+esc(x.locationSourceUrl)+'" target="_blank" rel="noopener noreferrer">Location evidence ↗</a><span>Reviewed '+esc(x.researchDate)+'</span></div></div><div><span class="badge">'+esc(x.marketUse)+'</span></div></article>').join(''):'<p>No researched companies match these filters. This does not establish that no companies exist.</p>';}
 function render(){
-$('#fp-state').value=state.geo;$('#fp-market').value=state.market;$('#fp-search').value=state.search;$('#fp-eval-segment').value=state.segment;$('#fp-directory-segment').value=state.directory;
+$('#fp-quality').value=state.quality;$('#fp-outreach').value=state.outreach;$('#fp-state').value=state.geo;$('#fp-market').value=state.market;$('#fp-search').value=state.search;$('#fp-eval-segment').value=state.segment;$('#fp-directory-segment').value=state.directory;
 const rows=filtered();$('#fp-count').textContent=rows.length;$('#fp-segments').textContent=new Set(rows.map(x=>x.segment)).size+' / 7';$('#fp-states').textContent=new Set(rows.map(x=>x.state)).size;
 ['compare','options','directory','prospects','shortlist'].forEach(v=>{$('#fp-'+v).hidden=state.view!==v;root.querySelector('[data-view="'+v+'"]').setAttribute('aria-pressed',String(state.view===v));});
 $('#fp-segment-rows').innerHTML=segments.map(s=>{const r=rows.filter(x=>x.segment===s);return '<tr><td class="segment">'+esc(names[s])+'</td><td>'+r.length+'</td>'+['Military/defense','Non-military','Both','Not yet verified'].map(m=>'<td>'+r.filter(x=>x.marketUse===m).length+'</td>').join('')+'<td><button type="button" data-explore="'+esc(s)+'">Evaluate</button></td></tr>';}).join('');
@@ -135,7 +139,7 @@ drawOptions();drawDirectory(rows);
 root.dispatchEvent(new CustomEvent('flightpath:filters'));
 }
 root.addEventListener('click',e=>{const view=e.target.closest('[data-view]');const explore=e.target.closest('[data-explore]');if(view){state.view=view.dataset.view;render();save();}if(explore){state.segment=explore.dataset.explore;state.view='options';render();save();}});
-const bindings={'fp-state':'geo','fp-market':'market','fp-directory-segment':'directory','fp-eval-segment':'segment'};
+const bindings={'fp-quality':'quality','fp-outreach':'outreach','fp-state':'geo','fp-market':'market','fp-directory-segment':'directory','fp-eval-segment':'segment'};
 Object.entries(bindings).forEach(([id,key])=>$('#'+id).addEventListener('change',e=>{state[key]=e.target.value;render();save();}));
 $('#fp-search').addEventListener('input',e=>{state.search=e.target.value;const pos=e.target.selectionStart;render();e.target.focus();e.target.setSelectionRange(pos,pos);save();});
 root.addEventListener('change',e=>{if(e.target.matches('[data-option]')){const a=assessment(),key=e.target.dataset.option;const values=a.ratings[key]||(a.ratings[key]=['','','']);values[Number(e.target.dataset.criterion)]=e.target.value;drawOptions();save();}});
@@ -148,5 +152,6 @@ render();
 
 <script src="dashboard/segment-strategy-model.js"></script>
 <script src="dashboard/segment-strategy.js"></script>
+<script src="dashboard/prospects.js"></script>
 </body></html>
 
