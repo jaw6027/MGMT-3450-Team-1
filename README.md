@@ -262,3 +262,28 @@ Results update immediately as the search term or selections change; no search su
 Search covers company names, industries, all assigned segments, military/civilian type, owners, lead sources, qualification, contact details and buyer roles, customer needs and notes, and opportunity names/stages/owners. Multiple filters combine with AND. Sales-stage filtering includes a company if any of its opportunities matches; each company appears once. Stage-filtered monetary summaries use only matching opportunities, so a company profile may show additional history beyond the current filter. Choosing No opportunity recorded finds companies without any opportunities. Closed-stage selections keep awarded values separate from potential revenue.
 
 The shared **Find buyers** workspace is preserved and now covers all seven markets, including other civilian operators. All generated scenario amounts remain estimates and are clearly labeled as demonstration data. Tests cover the expanded counts, preserved original records, repeat startup/deletion behavior, atomic rollback, combined filters, stage-aware summaries, no-match states, and desktop/mobile workflows.
+
+
+
+### Interactive customer segmentation
+
+Open `sales.html#customers` and choose **Customer segmentation**, or go directly to
+`segment-evaluation.html` with `node server.cjs` running. The Compare segments tab
+includes a bar comparison by buyer segment, state, or documented military-market
+focus. Location (California first), market, search, source, reviewer, and selected
+segments apply to the view. Additional qualification, assessment-status, and
+minimum-score filters apply to the segmentation chart and outreach table. Click
+a bar to select its group; click again or choose Show all groups to remove it.
+Reset segmentation filters clears only the additional filters and group selection.
+
+Ready to compare requires all five evidence-supported ratings and a Compatible
+assessment from the selected reviewer. Any reviewer's technical blocker takes
+precedence. Incomplete assessments stay separate; scores are reviewer judgments,
+not verified buying intent. Qualification is available for CRM records; catalog
+records start Not assessed. Unknown CRM locations and market labels stay unknown.
+Multi-segment records may appear in multiple bars; the prospect total is unique.
+Export matching prospects downloads the currently filtered group and includes
+the reviewer and weights. Review buttons open the existing prospect review form.
+If reviews cannot load, company counts remain visible, assessments are marked
+unavailable, and assessment filtering and export are disabled. Existing CRM,
+monitoring worksheets, nominations, and review persistence are preserved.

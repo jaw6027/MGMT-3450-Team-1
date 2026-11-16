@@ -28,6 +28,23 @@ const SegmentStrategy = (() => {
     return {count:members.length,nominated:new Set(reviews.filter(r=>r.nominated&&members.some(p=>p.key===r.prospect.key)).map(r=>r.prospect.key)).size,assessed:assessed.filter(s=>s.coverage===5).length,confirmedPain:selected.filter(r=>r.criteria.pain?.kind==='Customer conversation'&&r.criteria.pain.rating!==null).length,buyerAccess:selected.filter(r=>r.criteria.access?.kind==='Customer conversation'&&r.criteria.access.rating>=4).length,pilotReady:selected.filter(r=>r.criteria.pilot?.kind==='Customer conversation'&&r.criteria.pilot.rating>=4&&r.compatibility==='Compatible').length,blocked:assessed.filter(s=>s.blocked).length};
   }
   function csvCell(value) { let s=String(value??'');if(/^[\s]*[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'; }
-  return {criteria,score,candidates,metrics,csvCell};
+  function outreach(prospect,reviews,reviewer,weights) {
+    const own=reviews.find(r=>r.prospect.key===prospect.key&&r.reviewer===reviewer);
+    const assessment=score(own,weights);
+    const blocked=reviews.some(r=>r.prospect.key===prospect.key&&r.compatibility==='Incompatible');
+    const status=blocked?'Blocked':!own||assessment.coverage===0?'Unassessed':assessment.coverage<5||own.compatibility!=='Compatible'?'Needs research':'Ready to compare';
+    return {prospect,assessment,status,value:status==='Ready to compare'?assessment.value:null};
+  }
+  function segmentation(prospects,reviews,{reviewer,weights,qualification='all',readiness='all',minimum=0,groupBy='segment',group='all'}={}) {
+    const records=prospects.map(p=>outreach(p,reviews,reviewer,weights)).filter(r=>(qualification==='all'||r.prospect.qualification===qualification)&&(readiness==='all'||r.status===readiness)&&(!minimum||(r.value!==null&&r.value>=minimum)));
+    const keys=p=>groupBy==='segment'?[...new Set(p.segments)]:[groupBy==='state'?(p.state||'Unknown location'):(p.marketUse||'Not yet verified')];
+    const groups=new Map();
+    for(const r of records)for(const key of keys(r.prospect)){if(!groups.has(key))groups.set(key,{key,count:0,ready:0,research:0,unassessed:0,blocked:0});const g=groups.get(key);g.count++;g[{'Ready to compare':'ready','Needs research':'research','Unassessed':'unassessed','Blocked':'blocked'}[r.status]]++;}
+    const rank={'Ready to compare':0,'Needs research':1,'Unassessed':2,'Blocked':3};
+    const rows=records.filter(r=>group==='all'||keys(r.prospect).includes(group)).sort((a,b)=>rank[a.status]-rank[b.status]||(b.value??-1)-(a.value??-1)||a.prospect.name.localeCompare(b.prospect.name));
+    return {groups:[...groups.values()].sort((a,b)=>b.count-a.count||a.key.localeCompare(b.key)),rows};
+  }
+  return {criteria,score,candidates,metrics,csvCell,outreach,segmentation};
 })();
 if(typeof module!=='undefined')module.exports=SegmentStrategy;
+
