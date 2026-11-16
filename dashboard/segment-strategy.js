@@ -5,8 +5,9 @@
   const $=s=>root.querySelector(s);
   const segments=['U.S. Air Force','U.S. Navy','Defense contractors','Commercial drone manufacturers','Agricultural drone companies','Infrastructure inspection companies','Civilian drone operators'];
   const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let settings={reviewer:'Brandon',source:'Research catalog',segments:segments.slice(2,5),weights:M.criteria.map(c=>c.weight)};
+  let settings={reviewer:'Brandon',source:'Research catalog',segments:segments.slice(),weights:M.criteria.map(c=>c.weight)};
   try { const old=JSON.parse(localStorage.getItem('flightpath.decision-settings.v1'));if(old){if(['Brandon','Josh'].includes(old.reviewer))settings.reviewer=old.reviewer;if(['Research catalog','CRM workspace (sample database)'].includes(old.source))settings.source=old.source;if(Array.isArray(old.segments)&&old.segments.some(s=>segments.includes(s)))settings.segments=old.segments.filter(s=>segments.includes(s));if(Array.isArray(old.weights)&&old.weights.length===5&&old.weights.every(w=>Number.isInteger(w)&&w>=0&&w<=100)&&old.weights.some(w=>w>0))settings.weights=old.weights;} } catch { /* Optional browser preferences. */ }
+  let segmentation={groupBy:'segment',group:'all',qualification:'all',readiness:'all',minimum:0};
   let crm=null,team={revision:0,reviews:[]},ready=false,selected='',formReviewer='Brandon',dirty=false;
   const style=document.createElement('style');style.textContent=`
   #flightpath-draft .decision-settings{display:grid;gap:12px;border-block:1px solid var(--fp-line);padding:16px 0}
@@ -20,6 +21,18 @@
   #flightpath-draft .decision-error{color:light-dark(#9b2c20,#ffb0a5)}
   #flightpath-draft .decision-table{min-width:630px}
   #flightpath-draft .decision-heading{margin-top:20px}
+  #flightpath-draft .segmentation{background:var(--fp-panel);border:1px solid var(--fp-line);border-radius:12px;padding:20px;margin-bottom:24px;display:grid;gap:16px}
+  #flightpath-draft .seg-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--fp-sub)}
+  #flightpath-draft .seg-dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}
+  #flightpath-draft .seg-ready{background:#247a68}#flightpath-draft .seg-research{background:#b77a15}#flightpath-draft .seg-unassessed{background:#8593a8}#flightpath-draft .seg-blocked{background:#bd4e58}
+  #flightpath-draft .seg-charts{display:grid;gap:9px}
+  #flightpath-draft .seg-bar{display:grid;grid-template-columns:minmax(150px,1fr) minmax(80px,2fr) 36px;gap:12px;align-items:center;text-align:left;width:100%}
+  #flightpath-draft .seg-bar[aria-pressed=true]{background:var(--fp-soft);color:var(--fp-ink);outline:2px solid var(--fp-action)}
+  #flightpath-draft .seg-track{height:20px;display:flex;background:var(--fp-bg);border-radius:4px;overflow:hidden}
+  #flightpath-draft .seg-count{text-align:right;font-variant-numeric:tabular-nums}
+  #flightpath-draft button:focus-visible{outline:3px solid var(--fp-action);outline-offset:3px}
+  @media(max-width:600px){#flightpath-draft .segmentation{padding:12px}#flightpath-draft .seg-bar{grid-template-columns:minmax(0,1fr) 36px}#flightpath-draft .seg-track{grid-row:2;grid-column:1 / -1}}
+
   #flightpath-draft .decision-settings input[type=checkbox]{min-height:0;width:18px;height:18px}
   @media(max-width:600px){#flightpath-draft .evidence-row{grid-template-columns:1fr}}
   `;root.append(style);
@@ -31,6 +44,16 @@
   <p id="decision-connection" role="status">Connecting to workspace reviews…</p><p class="muted">Reviews are shared by windows using this running server. Separate laptops do not synchronize through GitHub. Reviewer names are labels, not authenticated accounts.</p><p id="decision-error" class="decision-error" role="alert"></p></section>`);
   $('#decision-source').value=settings.source;$('#decision-reviewer').value=settings.reviewer;
   $('#strategy-comparison').innerHTML='<h2>Compare segment readiness</h2><div id="decision-matrix" class="table-wrap"></div><p class="muted">Counts use selected data, segments, and filters. Fractions use unique matching companies in each segment; multi-segment companies can appear in several columns. Confirmation requires customer-conversation evidence. Review completion is not independent verification.</p><hr>';
+  $('#strategy-comparison').insertAdjacentHTML('afterbegin',`<section class="segmentation" aria-labelledby="seg-title">
+  <div><p class="eyebrow">CUSTOMER SEGMENTATION</p><h2 id="seg-title">Find your next outreach group</h2><p class="muted">Uses the location, market, search, data source, reviewer and segment selections above. Narrow by qualification or assessment, then select a bar to explore that group.</p></div>
+  <div class="toolbar"><label>Compare groups by<select id="seg-group-by"><option value="segment">Buyer segment</option><option value="state">State</option><option value="market">Military-market focus</option></select></label><label>CRM qualification<select id="seg-qualification"><option value="all">All qualifications</option></select></label><label>Assessment status<select id="seg-readiness"><option value="all">All assessments</option><option>Ready to compare</option><option>Needs research</option><option>Unassessed</option><option>Blocked</option></select></label><label>Minimum assessed score<select id="seg-minimum"><option value="0">Any score / unassessed</option><option value="3">3+ / 5</option><option value="4">4+ / 5</option><option value="4.5">4.5+ / 5</option></select></label></div>
+  <p class="muted">Ready to compare = all five criteria rated with evidence and compatible in the selected review. A blocker from either reviewer takes precedence. Scores reflect reviewer judgments; they do not establish purchase intent. Catalog qualification starts as Not assessed.</p>
+  <div class="seg-legend"><span><i class="seg-dot seg-ready"></i>Ready to compare</span><span><i class="seg-dot seg-research"></i>Needs research</span><span><i class="seg-dot seg-unassessed"></i>Unassessed</span><span><i class="seg-dot seg-blocked"></i>Blocked</span></div>
+  <p id="seg-summary" role="status" aria-live="polite"></p><div id="seg-charts" class="seg-charts" role="group" aria-label="Customer groups; select a bar to filter prospects"></div>
+  <p class="muted">Bars show company counts on one shared scale. Multi-segment companies can appear in several segment bars; the prospect total counts each company once. Unknown locations remain labeled unknown.</p>
+  <div class="toolbar"><p id="seg-selection"></p><button type="button" id="seg-clear-group">Show all groups</button><button type="button" id="seg-reset">Reset segmentation filters</button><button type="button" id="seg-export">Export matching prospects</button></div>
+  <div id="seg-results" class="table-wrap"></div>
+  </section>`);
   $('#fp-prospects').innerHTML='<h2>Evidence-backed prospect ratings</h2><p class="muted">Complete criteria from 1 (unfavorable) to 5 (favorable). Keep unknowns blank. A score does not override a technical blocker or establish customer intent.</p><div id="decision-ranking" class="table-wrap"></div><h2 class="decision-heading">Review a prospect</h2><p id="decision-form-note" class="muted"></p><div class="toolbar"><label>Prospect<select id="decision-prospect"></select></label><button type="button" id="decision-open">Open review</button></div><div id="decision-form"></div>';
   $('#fp-shortlist').innerHTML='<h2>Team shortlist</h2><p class="muted">All nominations across data sources, segments and filters are shown here. Brandon and Josh keep separate ratings and reasons. A technical blocker from either reviewer pauses the prospect for team resolution.</p><button type="button" id="decision-export">Export shortlist and evidence</button><div id="decision-shortlist" class="table-wrap"></div>';
   function persist(){try{localStorage.setItem('flightpath.decision-settings.v1',JSON.stringify(settings));}catch{}}
@@ -39,6 +62,7 @@
   function mine(key){return team.reviews.find(r=>r.prospect.key===key&&r.reviewer===settings.reviewer);}
   function fraction(n,d){return `${n}/${d}${d?' ('+Math.round(n/d*100)+'%)':''}`;}
   function render(){
+    renderSegmentation();
     const candidates=matching(),available=ready&&(settings.source==='Research catalog'||crm!==null);
     const metrics=settings.segments.map(s=>M.metrics(candidates,team.reviews,s,settings.reviewer,settings.weights));
     const fields=[['Matching companies','count'],['Rated on all five criteria','assessed'],['Customer-confirmed problem','confirmedPain'],['Confirmed buyer access rated 4–5','buyerAccess'],['Compatible + pilot readiness 4–5 confirmed','pilotReady'],['Nominated by either reviewer','nominated'],['Technical blockers ('+settings.reviewer+')','blocked']];
@@ -51,6 +75,33 @@
     const nominated=team.reviews.filter(r=>r.nominated);
     $('#decision-shortlist').innerHTML=!ready?'<p>Team reviews are unavailable. Refresh to retry; no blank data has replaced your saved reviews.</p>':nominated.length?`<table class="decision-table"><thead><tr><th>Prospect / reviewer</th><th>Score / evidence</th><th>Why prioritize</th><th>Next step</th><th>Updated</th></tr></thead><tbody>${nominated.map(r=>{const s=M.score(r,settings.weights),blocked=team.reviews.some(x=>x.prospect.key===r.prospect.key&&x.compatibility==='Incompatible');return `<tr><td>${escape(r.prospect.name)}<p>${escape(r.reviewer)}</p><p class="muted">${escape(r.prospect.source)}${all().some(p=>p.key===r.prospect.key)?'':' · no longer in active data'}</p></td><td>${blocked?'Paused: team technical blocker':s.value===null?'Needs research':s.value.toFixed(2)+' / 5'}<p class="muted">${s.coverage}/5 rated · ${s.confirmed} conversation-backed</p><p class="muted">${escape(s.status)}</p></td><td>${escape(r.reason)}</td><td>${escape(r.nextStep)}</td><td>${escape(r.updatedAt.slice(0,10))}</td></tr>`;}).join('')}</tbody></table>`:'<p>No nominations yet. Open a prospect review, explain why it merits attention, and record a next step.</p>';
   }
+  function renderSegmentation(){
+    const base=matching(),qualification=$('#seg-qualification');
+    const values=[...new Set(base.map(p=>p.qualification))].sort();
+    qualification.innerHTML='<option value="all">All qualifications</option>'+[...new Set([...values,...(segmentation.qualification==='all'?[]:[segmentation.qualification])])].map(v=>`<option>${escape(v)}</option>`).join('');qualification.value=segmentation.qualification;
+    const available=ready&&(settings.source==='Research catalog'||crm!==null);
+    $('#seg-readiness').disabled=!available;$('#seg-minimum').disabled=!available;
+    const result=M.segmentation(base,available?team.reviews:[],{...segmentation,...(!available?{readiness:'all',minimum:0}:{}),reviewer:settings.reviewer,weights:settings.weights});
+    const max=Math.max(1,...result.groups.map(g=>g.count));
+    $('#seg-summary').textContent=!available?'Assessment data unavailable. Group counts remain visible; assessment filters are paused. Refresh team reviews to compare readiness.':`${result.rows.length} unique matching prospects · ${result.rows.filter(r=>r.status==='Ready to compare').length} ready to compare · ${result.rows.filter(r=>r.status==='Blocked').length} blocked`;
+    $('#seg-charts').innerHTML=result.groups.map(g=>{
+      const label=available?`${g.key}: ${g.count} companies; ${g.ready} ready to compare, ${g.research} need research, ${g.unassessed} unassessed, ${g.blocked} blocked`:`${g.key}: ${g.count} companies; assessments unavailable`;
+      return `<button type="button" class="seg-bar" data-seg-group="${escape(g.key)}" aria-label="${escape(label)}" aria-pressed="${segmentation.group===g.key}"><span>${escape(g.key)}</span><span class="seg-track" aria-hidden="true">${available?['ready','research','unassessed','blocked'].map(k=>`<span class="seg-${k}" style="width:${g[k]/max*100}%"></span>`).join(''):`<span class="seg-unassessed" style="width:${g.count/max*100}%"></span>`}</span><span class="seg-count">${g.count}</span></button>`;
+    }).join('')||'<p>No groups match. Try another location, market, segment, or assessment filter.</p>';
+    $('#seg-selection').textContent=segmentation.group==='all'?'Prospects across all matching groups':`Selected group: ${segmentation.group}`;
+    $('#seg-clear-group').disabled=segmentation.group==='all';$('#seg-export').disabled=!available||!result.rows.length;
+    $('#seg-results').innerHTML=`<table><caption>Outreach comparison · ${escape(settings.reviewer)}'s ratings · ready prospects first, then score</caption><thead><tr><th scope="col">Prospect / location</th><th scope="col">Market / qualification</th><th scope="col">Assessment</th><th scope="col">Score / 5</th><th scope="col">Evidence</th><th scope="col">Action</th></tr></thead><tbody>${result.rows.map(r=>`<tr><td>${escape(r.prospect.name)}<p class="muted">${escape([r.prospect.city,r.prospect.state].filter(Boolean).join(', ')||'Unknown location')}</p></td><td>${escape(r.prospect.marketUse)}<p class="muted">${escape(r.prospect.qualification)}</p></td><td>${available?escape(r.status):'Unavailable'}</td><td>${available&&r.value!==null?r.value.toFixed(2):'—'}</td><td>${available?r.assessment.coverage+'/5 criteria':'Unavailable'}</td><td><button type="button" data-seg-review="${escape(r.prospect.key)}" ${available?'':'disabled'}>Review</button></td></tr>`).join('')||'<tr><td colspan="6">No matching prospects. Broaden the filters above.</td></tr>'}</tbody></table>`;
+  }
+  for(const [id,key] of [['seg-group-by','groupBy'],['seg-qualification','qualification'],['seg-readiness','readiness'],['seg-minimum','minimum']])$('#'+id).addEventListener('change',e=>{segmentation[key]=key==='minimum'?Number(e.target.value):e.target.value;segmentation.group='all';render();});
+  $('#seg-clear-group').addEventListener('click',()=>{segmentation.group='all';render();});
+  $('#seg-reset').addEventListener('click',()=>{segmentation={groupBy:'segment',group:'all',qualification:'all',readiness:'all',minimum:0};for(const [id,value] of [['seg-group-by','segment'],['seg-qualification','all'],['seg-readiness','all'],['seg-minimum','0']])$('#'+id).value=value;render();});
+  root.addEventListener('click',e=>{const bar=e.target.closest('[data-seg-group]'),review=e.target.closest('[data-seg-review]');if(bar){const key=bar.dataset.segGroup;segmentation.group=segmentation.group===key?'all':key;render();[...root.querySelectorAll('[data-seg-group]')].find(b=>b.dataset.segGroup===key)?.focus();}if(review){root.querySelector('[data-view="prospects"]').click();openForm(review.dataset.segReview);}});
+  $('#seg-export').addEventListener('click',()=>{
+    if(!ready)return;
+    const result=M.segmentation(matching(),team.reviews,{...segmentation,reviewer:settings.reviewer,weights:settings.weights});
+    const rows=[['company','segments','city','state','marketUse','source','qualification','reviewer','assessment','score','evidenceCoverage','weights'],...result.rows.map(r=>[r.prospect.name,r.prospect.segments.join('; '),r.prospect.city,r.prospect.state,r.prospect.marketUse,r.prospect.source,r.prospect.qualification,settings.reviewer,r.status,r.value??'',r.assessment.coverage+'/5',M.criteria.map((c,i)=>c.key+'='+settings.weights[i]).join('; ')])];
+    const url=URL.createObjectURL(new Blob([rows.map(row=>row.map(M.csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'})),a=document.createElement('a');a.href=url;a.download='flightpath-customer-segments.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  });
   function openForm(key){
     if(!ready)return;
     if(dirty&&!window.confirm('Discard the unsaved review and open another one?'))return;
@@ -83,13 +134,14 @@
     render();const submit=$('#prospect-review-form [type=submit]');if(submit)submit.disabled=!ready;
   }
   $('#decision-refresh').addEventListener('click',refresh);
-  $('#decision-reviewer').addEventListener('change',e=>{settings.reviewer=e.target.value;persist();render();});
-  $('#decision-source').addEventListener('change',e=>{settings.source=e.target.value;persist();render();});
-  root.addEventListener('change',e=>{if(e.target.matches('[data-segment]')){const values=[...root.querySelectorAll('[data-segment]:checked')].map(x=>segments[Number(x.dataset.segment)]);if(!values.length){e.target.checked=true;return;}settings.segments=values;persist();render();}if(e.target.matches('[data-weight]')){const n=Number(e.target.value),next=[...settings.weights];next[Number(e.target.dataset.weight)]=n;if(!Number.isInteger(n)||n<0||n>100||!next.some(w=>w>0)){e.target.value=settings.weights[Number(e.target.dataset.weight)];$('#decision-error').textContent='Weights must be whole numbers from 0–100, with at least one above zero.';return;}settings.weights=next;$('#decision-error').textContent='';persist();render();}});
-  root.addEventListener('flightpath:filters',render);
+  $('#decision-reviewer').addEventListener('change',e=>{settings.reviewer=e.target.value;segmentation.group='all';persist();render();});
+  $('#decision-source').addEventListener('change',e=>{settings.source=e.target.value;segmentation.group='all';persist();render();});
+  root.addEventListener('change',e=>{if(e.target.matches('[data-segment]')){const values=[...root.querySelectorAll('[data-segment]:checked')].map(x=>segments[Number(x.dataset.segment)]);if(!values.length){e.target.checked=true;return;}settings.segments=values;segmentation.group='all';persist();render();}if(e.target.matches('[data-weight]')){const n=Number(e.target.value),next=[...settings.weights];next[Number(e.target.dataset.weight)]=n;if(!Number.isInteger(n)||n<0||n>100||!next.some(w=>w>0)){e.target.value=settings.weights[Number(e.target.dataset.weight)];$('#decision-error').textContent='Weights must be whole numbers from 0–100, with at least one above zero.';return;}settings.weights=next;$('#decision-error').textContent='';persist();render();}});
+  root.addEventListener('flightpath:filters',()=>{segmentation.group='all';render();});
   root.addEventListener('click',e=>{const button=e.target.closest('[data-review-key]');if(button)openForm(button.dataset.reviewKey);});
   $('#decision-open').addEventListener('click',()=>openForm($('#decision-prospect').value));
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
   $('#decision-export').addEventListener('click',()=>{const columns=['company','source','reviewer','teamTechnicalBlocker','compatibility','score','scoringWeights','evidenceCoverage','reason','nextStep','updatedAt',...M.criteria.flatMap(c=>[c.key+'Rating',c.key+'Evidence',c.key+'Type',c.key+'URL'])];const rows=team.reviews.filter(r=>r.nominated).map(r=>{const s=M.score(r,settings.weights),blocked=team.reviews.some(x=>x.prospect.key===r.prospect.key&&x.compatibility==='Incompatible');return [r.prospect.name,r.prospect.source,r.reviewer,blocked?'Yes':'No',r.compatibility,blocked?'Blocked':s.value??'',M.criteria.map((c,i)=>c.key+'='+settings.weights[i]).join('; '),s.coverage+'/5',r.reason,r.nextStep,r.updatedAt,...M.criteria.flatMap(c=>{const v=r.criteria[c.key];return [v.rating??'',v.evidence,v.kind,v.url];})];});const blob=new Blob([[columns,...rows].map(row=>row.map(M.csvCell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='flightpath-team-shortlist.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
   render();refresh();
 })();
+
