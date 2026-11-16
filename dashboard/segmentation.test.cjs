@@ -38,3 +38,8 @@ test('qualification, readiness, group, weights and empty matches combine without
   assert.deepEqual(M.segmentation(prospects,reviews,{minimum:5,qualification:'Missing'}),{groups:[],rows:[]});
   assert.equal(prospects[0].segments.length,2);
 });
+
+test('do-not-contact records are kept visible but placed after eligible prospects',()=>{
+  const rows=M.segmentation([{...prospects[0],outreachStatus:'Do not contact'},prospects[1]],[review('a','Compatible',5)],{reviewer:'Brandon'}).rows;
+  assert.equal(rows.at(-1).prospect.key,'a');assert.equal(rows.at(-1).outreachPaused,true);
+});
