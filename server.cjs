@@ -3,12 +3,15 @@ const http=require('node:http');
 const fs=require('node:fs');
 const path=require('node:path');
 const {openStore}=require('./database/customer-store.cjs');
+const {openInquiryStore}=require('./database/inquiry-store.cjs');
 const {fail}=require('./database/customer-input.cjs');
-const store=openStore(process.env.CUSTOMER_DB_PATH||path.join(__dirname,'.local','customers.sqlite'),{expandDemo:process.env.CUSTOMER_DEMO_EXPANSION!=='0'});
+const databasePath=process.env.CUSTOMER_DB_PATH||path.join(__dirname,'.local','customers.sqlite');
+const store=openStore(databasePath,{expandDemo:process.env.CUSTOMER_DEMO_EXPANSION!=='0'});
+const inquiries=openInquiryStore(databasePath);
 const root=__dirname;
 const port=Number(process.env.PORT||8765);
-const allowed=new Set(['index.html','sales.html','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js']);
-const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
+const allowed=new Set(['index.html','telemetry.html','sales.html','website/styles.css','website/app.js','website/drone.svg','marketing/styles.css','marketing/model.js','marketing/app.js','dashboard/styles.css','dashboard/data.js','dashboard/model.js','dashboard/app.js','dashboard/discovery.js','dashboard/customer-model.js','dashboard/customers.js','dashboard/customer-editor.js','dashboard/inquiries.js']);
+const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 function json(response,status,body,head=false){response.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});response.end(head?undefined:JSON.stringify(body));}
 async function readBody(request){
   if(request.headers['content-type']?.split(';')[0].trim()!=='application/json')fail('Send JSON data.',415);
@@ -19,6 +22,25 @@ async function readBody(request){
 }
 const server=http.createServer(async(request,response)=>{
   let pathname;try{pathname=decodeURIComponent(new URL(request.url,'http://localhost').pathname);}catch{response.writeHead(400);response.end('Invalid URL');return;}
+  if(pathname==='/api/inquiries'){
+    const methods=['GET','HEAD','POST'];
+    if(!methods.includes(request.method)){response.setHeader('Allow',methods.join(', '));json(response,405,{error:'Method not allowed'});return;}
+    try{
+      const host=request.headers.host;
+      if(!host||!new Set([`127.0.0.1:${server.address().port}`,`localhost:${server.address().port}`]).has(host))fail('Invalid local host.',403);
+      if(request.headers.origin&&request.headers.origin!==`http://${host}`)fail('Cross-origin requests are not allowed.',403);
+      if(request.headers['sec-fetch-site']==='cross-site')fail('Cross-site requests are not allowed.',403);
+      if(request.method==='POST'){
+        if(request.headers['x-website-inquiry']!=='1')fail('Use the website inquiry form to submit a request.',403);
+        const result=inquiries.save(await readBody(request));
+        json(response,201,result);
+      }else json(response,200,{inquiries:inquiries.read()},request.method==='HEAD');
+    }catch(error){
+      if(!error.status)console.error('Website inquiry operation failed:',error.message);
+      json(response,error.status||500,{error:error.status?error.message:'The inquiry could not be saved. Try again later.'},request.method==='HEAD');
+    }
+    return;
+  }
   const customerRoute=pathname==='/api/customers',recordRoute=pathname.match(/^\/api\/customers\/([1-9]\d*)$/);
   if(customerRoute||recordRoute){
     const methods=customerRoute?['GET','HEAD','POST']:['PUT','DELETE'];

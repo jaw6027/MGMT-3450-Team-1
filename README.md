@@ -1,10 +1,24 @@
-# Flightpath — marketing telemetry and drone sales dashboards
+# Flightpath — drone company website and sales workspaces
 
-A responsive engineering-style marketing portal for MGMT 3450 Team 1, with a separate B2B/B2G sales workspace. Plain HTML, CSS, JavaScript, and SVG; no package installation, paid dependencies, external fonts, or database required for the demo. All sample data is simulated or fictional.
+A responsive drone company concept website for MGMT 3450 Team 1, focused on direct commercial sales and government/military procurement. The existing marketing telemetry and B2B/B2G sales workspaces remain available. Plain HTML, CSS, JavaScript, and SVG, with a dependency-free Node.js/SQLite server for customer records and website inquiries. All sample customer data is fictional.
+
+## Company website and sales inquiries
+
+Run `node server.cjs` from the repository root with Node.js 24 (at least 22.13), then use the local server's root page for the company website. No package installation or credentials are required.
+
+- `index.html`: company website, with direct-sales and government/military buyer paths, application cards, an evaluation process, and a request form.
+- `telemetry.html`: the original marketing dashboard, including its demo controls and optional live API mode.
+- `sales.html`: the existing customer/sales workspace, including a new **Website inquiries** inbox.
+
+The form saves business contact details, the selected buyer path/application, a purchasing timeline, and an optional project overview. Submissions are validated on the server and kept in an additive `website_inquiries` table in the same SQLite file as the customer database (default `.local/customers.sqlite`, or `CUSTOMER_DB_PATH`). They do not change customer records, invent opportunity values, or assign a generic military buyer to an incorrect service branch. Retry identifiers prevent a repeated submission with the same details from creating duplicate requests. The inbox supports refresh, search, buyer-path filtering, and full request details; it starts empty.
+
+The confirmation means the request was saved to this project's inbox. No email, external CRM, or real sales team notification is connected. JavaScript and the local Node server are required to save requests; opening the HTML directly still displays the website. Flightpath is the working brand, and the aircraft illustration and application descriptions are concepts rather than verified product specifications or procurement certifications.
+
+This server remains a loopback-only classroom prototype. Before public deployment, keep the internal sales/customer/inquiry inbox routes behind authenticated staff access, configure a production HTTPS intake backend, and add the company's real product specifications, contact details, and privacy information. Static hosting alone will not save inquiries.
 
 ## Open the dashboard
 
-Download this repository as a ZIP from GitHub (Code → Download ZIP), extract it, and open `index.html` in a modern browser. Keep both asset folders next to it. The link at the top opens `sales.html`, the original sales workspace.
+Download this repository as a ZIP from GitHub (Code → Download ZIP), extract it, and open `index.html` for the company website or `telemetry.html` for marketing telemetry in a modern browser. Keep the asset folders next to the HTML files. The footer links lead to the existing workspaces.
 
 For the database-connected Customer Dashboard and live endpoints, use the included local server (Node.js 24 recommended; at least 22.13 required for built-in SQLite):
 
@@ -88,7 +102,7 @@ The plain-language introduction explains vibration, structural bending, and temp
 
 Validation for buyer discovery covers all seven markets, sector and membership handling, secondary-contact search, escaped customer text, missing database states, and persistent creation of a prospect from every market. The API test also verifies the discovery script is served. Automated tests and desktop/mobile browser verification pass, including market cards and prospect creation.
 
-Run `node server.cjs` from the repository root, then open `sales.html` through the local server. **Customers** is the default sales-workspace view. The marketing dashboard remains at `index.html`; its assets and calculations are unchanged.
+Run `node server.cjs` from the repository root, then open `sales.html` through the local server. **Customers** is the default sales-workspace view. The marketing dashboard is at `telemetry.html`; its assets and calculations are unchanged.
 
 The dashboard reads `/api/customers`, backed by a persistent SQLite database at `.local/customers.sqlite`. The server creates and seeds it once; restarts preserve records and follow-up dates. No package installation, PostgreSQL service, or credentials are required. Set `CUSTOMER_DB_PATH` to use a separate database file, or `PORT` for another local port. The runtime database is ignored by Git. `database/customer-store.cjs` defines the relational demo tables; `database/demo.cjs` provides explicitly fictional records. No existing PostgreSQL schema is applied or replaced.
 

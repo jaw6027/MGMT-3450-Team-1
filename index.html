@@ -1,12 +1,129 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Marketing telemetry with an interactive funnel, buyer-segment trends, and optional live API connection."><title>Flightpath | Marketing Telemetry</title><link rel="stylesheet" href="marketing/styles.css"><script defer src="marketing/model.js"></script><script defer src="marketing/app.js"></script></head>
-<body><a class="skip" href="#overview">Skip to overview</a>
-<header class="site-header"><div class="nav-inner"><a class="logo" href="#overview"><span class="logo-mark">↗</span> FLIGHTPATH <span class="logo-divider">/</span> <span class="logo-sub">MARKETING TELEMETRY</span></a><nav aria-label="Page sections"><a href="#overview">Overview</a><a href="#visualization">Funnel Visualization</a><a href="#trends">Campaign Trends</a><a href="#alerts">Alerts</a><a href="#architecture">Architecture</a></nav><a class="sales-link" href="sales.html">Sales workspace ↗</a></div></header>
-<main><section class="hero"><div><p class="eyebrow">GROWTH SYSTEMS / BUYER INTELLIGENCE</p><h1>Every signal.<br><span>A clearer direction.</span></h1><p class="intro">Buyer outreach, from first impression to conversion.<br>One connected view of your marketing engine.</p></div><div class="hero-status"><span class="status-orbit" aria-hidden="true">◎</span><div><span class="small-label">SYSTEM STATUS</span><strong id="status-label">Simulation active</strong><span id="updated">Waiting for first sample</span></div></div></section>
-<section class="source-panel" aria-labelledby="source-title"><div class="source-top"><div><h2 id="source-title">Data source</h2><p id="source-description">Simulated buyer-segment data. No outreach systems are connected.</p></div><div class="mode-control"><span>Demo Mode <small>(Simulated Data)</small></span><button id="mode-toggle" class="switch" role="switch" aria-checked="false" aria-label="Live Mode (API Endpoint)"><span></span></button><span>Live Mode <small>(API Endpoint)</small></span></div><span id="mode-badge" class="pill">SIMULATION ACTIVE</span></div><form id="api-form" class="api-settings" hidden><label>Read-only API endpoint<input id="api-endpoint" type="url" placeholder="https://your-backend.example/api/marketing" autocomplete="off" aria-describedby="api-help"></label><button type="submit" class="primary">Connect endpoint ↗</button><p id="api-help">Use your own JSON endpoint. CRM and outreach API keys stay on your backend. Live mode never generates sample data.</p></form><p id="connection-message" class="connection-message" role="status"></p></section>
-<section id="overview" class="section-block" aria-labelledby="overview-title"><div class="section-heading"><div><p class="eyebrow">01 / PERFORMANCE SNAPSHOT</p><h2 id="overview-title">The numbers that move you.</h2></div><div class="scope"><label for="channel">Buyer segment</label><select id="channel"><option value="all">All buyer segments</option></select><span id="sample-count">40 intervals · 15-second spacing</span></div></div><div id="kpis" class="kpi-grid"></div><p class="section-note">Metrics aggregate the selected buyer segment’s displayed intervals. CAC uses conversions as an acquisition proxy; ROAS uses attributed revenue relative to outreach spend.</p></section>
-<section id="visualization" class="panel section-block" aria-labelledby="funnel-title"><div class="panel-heading"><div><p class="eyebrow">02 / CONVERSION PATH</p><h2 id="funnel-title">Follow the flow.</h2><p>Stage geometry responds to audience volume and conversion rates.</p></div><span class="tag">FIG 01 / TOP-DOWN FUNNEL</span></div><div class="funnel-segment-context"><p id="funnel-scope">All buyer segments · impressions → clicks → leads → conversions</p><div id="funnel-segments" class="segment-list" aria-label="Funnel buyer segments"></div></div><div class="funnel-layout"><div class="funnel-canvas"><svg id="funnel" viewBox="0 0 740 370" role="img" aria-labelledby="funnel-svg-title funnel-svg-description"></svg><div class="funnel-legend"><span><i></i> Audience flow</span><span>Color intensity = stage conversion rate</span></div><p class="section-note">Widths use a square-root scale for readability. Colors are illustrative, not validated performance thresholds.</p></div><aside class="control-panel"><p class="eyebrow">SIMULATION CONSOLE</p><h3>Explore the conversion chain.</h3><p id="controls-note">Adjust the inputs. Watch the entire system respond.</p><fieldset id="demo-controls"><legend class="sr-only">Demo simulation settings</legend><label>Impressions / interval <output for="demo-impressions" id="value-impressions"></output><input id="demo-impressions" type="range" min="1000" max="10000" step="100" value="4000"></label><label>Click-through rate <output for="demo-ctr" id="value-ctr"></output><input id="demo-ctr" type="range" min="0" max="8" step="0.1" value="2.4"></label><label>Click → lead rate <output for="demo-lead" id="value-lead"></output><input id="demo-lead" type="range" min="0" max="80" step="1" value="24"></label><label>Lead → conversion rate <output for="demo-close" id="value-close"></output><input id="demo-close" type="range" min="0" max="80" step="1" value="18"></label><label>Cost per click <output for="demo-cpc" id="value-cpc"></output><input id="demo-cpc" type="range" min="0.2" max="5" step="0.1" value="1.8"></label></fieldset><p class="control-footnote">Demo revenue: $180 per conversion. Inputs apply across simulated buyer segments.</p></aside></div></section>
-<section id="trends" class="section-block" aria-labelledby="trends-title"><div class="section-heading"><div><p class="eyebrow">03 / RECENT TELEMETRY</p><h2 id="trends-title">Signals over time.</h2></div><label class="metric-select">Chart metric <select id="chart-metric"><option value="spend">Outreach spend ($)</option><option value="impressions">Impressions</option><option value="ctr">CTR (%)</option><option value="conversions">Conversions</option><option value="cac">CAC ($)</option><option value="roas">ROAS (×)</option></select></label></div><div class="panel chart-panel"><div class="chart-top"><span id="chart-title">Outreach spend ($)</span><span><i class="chart-dot"></i> <span id="chart-source">Simulated samples</span></span></div><svg id="trend-chart" viewBox="0 0 1100 250" role="img" aria-labelledby="chart-svg-title chart-svg-description"></svg><p class="section-note">Each point is one buyer-segment interval. Hover or focus a point for details. Missing ratios appear as gaps.</p></div><div class="panel telemetry-table"><div class="panel-heading"><div><h3>Buyer segment performance log</h3><p id="table-description">Most recent 40 intervals. Select a column header to sort.</p></div><button id="export" class="secondary">↓ Export CSV</button></div><div class="table-scroll"><table><caption class="sr-only">Recent buyer-segment telemetry, sortable by column</caption><thead><tr id="table-head"></tr></thead><tbody id="table-body"></tbody></table></div></div></section>
-<section id="alerts" class="section-block" aria-labelledby="alerts-title"><div class="section-heading"><div><p class="eyebrow">04 / SYSTEM NOTICES</p><h2 id="alerts-title">Stay ahead of the signal.</h2></div><label class="budget-setting">40-interval budget ($)<input id="budget" type="number" min="1" max="1000000000" step="1" value="8000"></label></div><div id="notice" class="notice" role="status"></div><p class="section-note">Budget notices compare all buyer segments’ displayed spend with this rolling-window limit, independently of the buyer-segment filter.</p></section>
-<section id="architecture" class="panel section-block" aria-labelledby="architecture-title"><div class="panel-heading"><div><p class="eyebrow">05 / SYSTEM ARCHITECTURE</p><h2 id="architecture-title">Built for a connected picture.</h2><p>A clear route from platform events to actionable telemetry.</p></div><span class="tag">READ-ONLY DATA FLOW</span></div><div class="architecture-flow"><div><span class="node-number">01</span><h3>Data Sources</h3><p>Defense outreach · Maritime contacts<br>Fleet operators · Demo requests</p></div><span class="flow-arrow" aria-hidden="true">→</span><div><span class="node-number">02</span><h3>Ingestion Bridge</h3><p>Your backend connectors<br>Normalize · validate · attribute</p></div><span class="flow-arrow" aria-hidden="true">→</span><div><span class="node-number">03</span><h3>Warehouse</h3><p>PostgreSQL / chosen storage<br>Aggregate buyer-segment intervals</p></div><span class="flow-arrow" aria-hidden="true">→</span><div class="active-node"><span class="node-number">04</span><h3>Dashboard</h3><p>Read-only JSON endpoint<br>KPIs · funnel · trends</p></div></div><div class="architecture-note"><span id="architecture-status">Current route: browser simulation → dashboard.</span><span>Connectors, warehouse ingestion, and platform authentication are future backend work.</span></div></section>
-<footer><a class="footer-brand" href="#overview">↗ FLIGHTPATH</a><span>MGMT 3450 · TEAM 01</span><span>Marketing telemetry / Prototype</span><a href="sales.html">Explore the sales workspace ↗</a></footer></main></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore a direct path to your next drone program. Flightpath brings commercial buyers and government teams from requirements to a focused aircraft evaluation.">
+  <meta name="theme-color" content="#101e17">
+  <title>Flightpath | A direct path to your next drone</title>
+  <link rel="stylesheet" href="website/styles.css">
+  <script defer src="website/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="wordmark" href="index.html" aria-label="Flightpath home"><span class="brand-mark" aria-hidden="true"></span>flightpath<span class="brand-period">.</span></a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-controls="site-nav" aria-expanded="false"><span class="menu-lines" aria-hidden="true"></span>Menu</button>
+      <nav class="site-nav" id="site-nav" aria-label="Main navigation">
+        <a href="#solutions">Solutions</a>
+        <a href="#process">How we work</a>
+        <a href="#government">Government &amp; military</a>
+        <a class="header-cta" href="#contact">Request a demo <span class="arrow-diagonal" aria-hidden="true"></span></a>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap">
+        <div class="hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Unmanned systems. Human connection.</p>
+            <h1 id="hero-title">The right drone.<br><em>A direct path<br>forward.</em></h1>
+            <p class="hero-description">Your operation comes first. Explore drone solutions for commercial fleets and government programs, with a direct conversation at every step.</p>
+            <div class="hero-actions">
+              <a class="button button-lime" href="#contact" data-request="direct">Talk to our team <span class="button-arrow arrow-diagonal" aria-hidden="true"></span></a>
+              <a class="text-link" href="#solutions">Explore the possibilities <span class="arrow-diagonal arrow-down" aria-hidden="true"></span></a>
+            </div>
+          </div>
+          <div class="hero-art">
+            <img src="website/drone.svg" alt="Technical illustration of a four-rotor drone with an underbody camera" width="960" height="840" fetchpriority="high">
+            <div class="art-label" aria-hidden="true"><span><i class="arrow-diagonal"></i></span>A DIFFERENT PERSPECTIVE</div>
+            <div class="art-caption"><span>FIG. 01 / MULTIROTOR CONCEPT</span><span>OPERATION FIRST.</span></div>
+          </div>
+        </div>
+        <div class="hero-bottom" aria-label="Who we work with"><div><span>01 /</span>Commercial &amp; enterprise</div><div><span>02 /</span>Government &amp; military</div><div><span>03 /</span>Direct, consultative sales</div></div>
+      </div>
+    </section>
+    <section class="section route-section wrap" aria-labelledby="route-title">
+      <div class="section-heading"><div><p class="eyebrow">01 / YOUR PATH TO PURCHASE</p><h2 id="route-title">Built around the way you buy.</h2></div><p class="section-description">A drone is one part of the decision. Your requirements, people, and purchasing process shape the rest.</p></div>
+      <div class="buyer-tabs" role="tablist" aria-label="Choose your purchasing path">
+        <button class="buyer-tab is-active" type="button" role="tab" id="buyer-tab-direct" aria-selected="true" aria-controls="buyer-panel" tabindex="0" data-buyer="direct"><span class="tab-number" aria-hidden="true">01</span>Direct &amp; commercial sales</button>
+        <button class="buyer-tab" type="button" role="tab" id="buyer-tab-military" aria-selected="false" aria-controls="buyer-panel" tabindex="-1" data-buyer="military"><span class="tab-number" aria-hidden="true">02</span>Government &amp; military</button>
+      </div>
+      <div class="buyer-content" id="buyer-panel" role="tabpanel" aria-labelledby="buyer-tab-direct" tabindex="0"><div><h3 id="buyer-title">From your first aircraft to your next fleet.</h3><p id="buyer-description">Start with the job you need to do. Discuss your operating environment, preferred payloads, and fleet goals directly, then define a focused demonstration before making a purchase decision.</p></div><ul class="buyer-points" id="buyer-points"><li>Explore aircraft and payload requirements</li><li>Plan a demonstration around your application</li><li>Discuss training, support, and fleet needs</li></ul></div>
+    </section>
+    <section class="section solutions-section" id="solutions" aria-labelledby="solutions-title">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="eyebrow">02 / POSSIBILITIES, WITH PURPOSE</p><h2 id="solutions-title">Start with the work ahead.</h2></div><p class="section-description">Tell us what you need to see, measure, or understand. We’ll use that conversation to shape your evaluation.</p></div>
+        <div class="solution-grid">
+          <article class="solution-card">
+            <div class="solution-visual"><span class="card-code">APPLICATION / 01</span>
+              <svg viewBox="0 0 400 220" fill="none" aria-hidden="true"><path d="M0 173 61 158 115 176 176 151 232 164 293 139 342 161 400 146V220H0Z" fill="#d2dcc5"/><g stroke="#8a9f74" stroke-width="1"><path d="m0 187 61-15 54 17 61-24 56 13 61-25 49 22 58-15M0 202l61-15 54 18 61-24 56 13 61-25 49 22 58-16"/></g><g stroke="#526e43" stroke-width="1.8" stroke-linejoin="round"><path d="m155 177 30-118h28l31 118M176 91h47M168 123h63M160 155h79M185 59l38 32-55 32 71 32M213 59l-37 32 55 32-71 32M175 77h-34l44-18M222 77h34l-43-18M168 105h-43l51-14M231 105h43l-51-14"/><path d="M142 77c-28 26-53 26-82 0M256 77c27 26 52 26 82 0M126 105c-28 28-52 28-82 0M274 105c27 28 52 28 82 0" stroke="#96aa7e"/></g><path d="M110 55h-20v20M285 55h20v20M90 161v20h20M305 161v20h-20" stroke="#8b9f75" stroke-dasharray="3 3"/><circle cx="200" cy="116" r="5" fill="#c4dc99" stroke="#6b8553"/></svg>
+              <span class="visual-tag">A CLOSER LOOK</span>
+            </div>
+            <div class="solution-body"><p class="eyebrow">COMMERCIAL OPERATIONS</p><h3>Infrastructure<br>&amp; inspection.</h3><p>Explore an aerial view of energy assets, structures, and industrial sites. Define the imagery and access your inspection workflow needs.</p><button type="button" data-use-case="Infrastructure inspection">Discuss your operation <span class="arrow-diagonal" aria-hidden="true"></span></button></div>
+          </article>
+          <article class="solution-card">
+            <div class="solution-visual"><span class="card-code">APPLICATION / 02</span>
+              <svg viewBox="0 0 400 220" fill="none" aria-hidden="true"><path d="m200 43 169 75-169 75L31 118Z" fill="#d1dbc2" stroke="#8ea477"/><path d="m200 61 132 58-132 58-132-58Z" fill="#dfe6d2" stroke="#8ea477"/><g stroke="#9caf87"><path d="m101 104 132 58M134 89l133 59M167 75l133 59M101 134l133-59M134 148l133-59M167 163l133-59"/><path d="m31 118v18l169 75 169-75v-18M200 193v18"/></g><path d="m91 124 60-22 24 6 36-29 60 34 31 2" stroke="#526f3e" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 5"/><path d="m133 132 37-13 30 8 40-23 41 17" stroke="#82996a" stroke-width="1.5"/><g fill="#d8efaf" stroke="#66874a"><circle cx="91" cy="124" r="4"/><circle cx="211" cy="79" r="4"/><circle cx="302" cy="115" r="4"/></g><path d="M200 15v25M188 28h24" stroke="#6d8854"/><path d="m200 16 5 12-5-3-5 3Z" fill="#6d8854"/></svg>
+              <span class="visual-tag">A WIDER PICTURE</span>
+            </div>
+            <div class="solution-body"><p class="eyebrow">SURVEYING &amp; FLEET PROGRAMS</p><h3>Mapping<br>&amp; site intelligence.</h3><p>Bring your coverage, data, and project requirements to the conversation. Explore a platform and workflow around your surveying needs.</p><button type="button" data-use-case="Mapping &amp; surveying">Plan your evaluation <span class="arrow-diagonal" aria-hidden="true"></span></button></div>
+          </article>
+          <article class="solution-card">
+            <div class="solution-visual"><span class="card-code">APPLICATION / 03</span>
+              <svg viewBox="0 0 400 220" fill="none" aria-hidden="true"><circle cx="201" cy="120" r="75" stroke="#a0b28c"/><circle cx="201" cy="120" r="55" stroke="#8b9f76"/><circle cx="201" cy="120" r="33" stroke="#a0b28c" stroke-dasharray="3 5"/><path d="M101 120h200M201 23v194" stroke="#9baf85" stroke-dasharray="3 5"/><path d="m200 116 65-44a79 79 0 0 1 12 57Z" fill="#c8d8b0"/><g stroke="#526f40" stroke-width="1.7"><path d="m163 132 38-30 38 30-38 31Z" fill="#dbe4cd"/><path d="m163 119 38-30 38 30-38 31Z" fill="#e2e8d8"/><path d="m185 134 16-13 16 13M201 89v13M163 119v13M239 119v13M201 150v13"/></g><path d="M104 59H85v19M298 59h19v19M85 163v19h19M317 163v19h-19" stroke="#799362"/><circle cx="265" cy="72" r="4" fill="#5f7c4c"/><circle cx="201" cy="121" r="4" fill="#5f7c4c"/></svg>
+              <span class="visual-tag">A CLEARER REQUIREMENT</span>
+            </div>
+            <div class="solution-body"><p class="eyebrow">GOVERNMENT &amp; MILITARY</p><h3>Evaluation<br>&amp; procurement.</h3><p>Start a requirements conversation for your program. Discuss evaluation criteria, documentation needs, and the purchasing process.</p><button type="button" data-use-case="Government evaluation">Start a program discussion <span class="arrow-diagonal" aria-hidden="true"></span></button></div>
+          </article>
+        </div>
+        <p class="section-footnote">Illustrative applications. Aircraft configuration, capabilities, and availability are confirmed during evaluation.</p>
+      </div>
+    </section>
+    <section class="section government-section wrap" id="government" aria-labelledby="government-title">
+      <div class="government-visual">
+        <span class="gov-reference">PROGRAM / REQUIREMENTS FIRST</span>
+        <svg viewBox="0 0 400 360" fill="none" aria-hidden="true"><g stroke="#7c9960" stroke-width="1"><circle cx="200" cy="164" r="122"/><ellipse cx="200" cy="164" rx="72" ry="122"/><ellipse cx="200" cy="164" rx="26" ry="122"/><ellipse cx="200" cy="164" rx="122" ry="44"/><ellipse cx="200" cy="164" rx="122" ry="85"/><path d="M78 164h244M200 42v244"/></g><path d="m200 101 60 25v51c0 42-60 72-60 72s-60-30-60-72v-51Z" fill="#253c28" stroke="#c7e397" stroke-width="1.7"/><path d="m200 117 46 19v40c0 30-46 56-46 56s-46-26-46-56v-40Z" stroke="#829d65"/><path d="m179 174 14 14 31-34" stroke="#c7e397" stroke-width="3" stroke-linecap="square"/><circle cx="80" cy="164" r="4" fill="#c7e397"/><circle cx="287" cy="78" r="4" fill="#c7e397"/><path d="M80 164 38 202v36M287 78l40-36h34" stroke="#b6d18c"/><path d="M45 55V39h16M339 289v17h-16" stroke="#829d65"/><path d="M158 323h84" stroke="#c7e397"/><path d="M180 332h40" stroke="#6d8856"/></svg>
+        <div class="gov-caption">A THOUGHTFUL APPROACH.<br>FROM FIRST CONTACT TO EVALUATION.</div>
+      </div>
+      <div class="government-copy"><p class="eyebrow">03 / GOVERNMENT &amp; MILITARY</p><h2 id="government-title">Complex requirements.<br>A clear starting point.</h2><p>Every program has its own mission, evaluation process, and acquisition requirements. Begin with a general overview so the next conversation involves the right people and the right questions.</p><ul class="procurement-list"><li><span>01</span>Define the operating environment and evaluation goals</li><li><span>02</span>Identify documentation and acquisition requirements</li><li><span>03</span>Discuss a demonstration and the next review step</li></ul><a class="button" href="#contact" data-request="military">Discuss your program <span class="button-arrow arrow-diagonal" aria-hidden="true"></span></a></div>
+    </section>
+    <section class="section process-section" id="process" aria-labelledby="process-title">
+      <div class="wrap">
+        <div class="section-heading"><div><p class="eyebrow">04 / FROM CONVERSATION TO CONFIDENCE</p><h2 id="process-title">Less guesswork. A better next step.</h2></div><p class="section-description">Direct sales means a conversation about fit before a conversation about a purchase.</p></div>
+        <div class="process-grid"><article class="process-step"><span class="step-number">01 /</span><h3>Tell us the objective.</h3><p>Share your application, organization, and timeline. Start with what success looks like for your operation.</p></article><article class="process-step"><span class="step-number">02 /</span><h3>Shape the evaluation.</h3><p>Discuss aircraft configuration, payload needs, operational constraints, and what a useful demonstration should show.</p></article><article class="process-step"><span class="step-number">03 /</span><h3>Define the next move.</h3><p>Review the fit, purchasing requirements, and support needs before deciding how your program moves forward.</p></article></div>
+      </div>
+    </section>
+    <section class="contact-section wrap" id="contact" aria-labelledby="contact-title">
+      <div class="contact-layout">
+        <div class="contact-intro"><p class="eyebrow">05 / LET’S GET STARTED</p><h2 id="contact-title">Your next move<br>starts here.</h2><p>Looking for an aircraft, building a fleet, or evaluating a government program? Tell us where you want to go.</p><div class="contact-aside"><span class="arrow-diagonal" aria-hidden="true"></span><div>Direct &amp; commercial sales<br>Government &amp; military inquiries<br>Demonstration and evaluation planning</div></div></div>
+        <form class="inquiry-form" id="inquiry-form">
+          <div class="form-grid">
+            <div class="form-field"><label for="inquiry-name">Full name</label><input id="inquiry-name" name="name" type="text" autocomplete="name" maxlength="100" placeholder="Your name" required></div>
+            <div class="form-field"><label for="inquiry-email">Business email</label><input id="inquiry-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@organization.com" required></div>
+            <div class="form-field full"><label for="inquiry-organization">Organization</label><input id="inquiry-organization" name="organization" type="text" autocomplete="organization" maxlength="160" placeholder="Company, agency, or unit" required></div>
+            <div class="form-field"><label for="inquiry-buyer">I’m interested in</label><select id="inquiry-buyer" name="buyerType" required><option value="direct">Direct &amp; commercial sales</option><option value="military">Government &amp; military</option></select></div>
+            <div class="form-field"><label for="inquiry-use-case">Primary application</label><select id="inquiry-use-case" name="useCase" required><option value="" disabled selected>Select an application</option><option>Infrastructure inspection</option><option>Mapping &amp; surveying</option><option>Government evaluation</option><option>Other</option></select></div>
+            <div class="form-field full"><label for="inquiry-timeline">Expected timeline</label><select id="inquiry-timeline" name="timeline" required><option>Exploring</option><option>Within 3 months</option><option>3–6 months</option><option>6+ months</option></select></div>
+            <div class="form-field full"><label for="inquiry-message">What are you looking to accomplish? <span>Optional</span></label><textarea id="inquiry-message" name="message" rows="4" maxlength="2000" placeholder="A brief overview of your project and requirements"></textarea></div>
+          </div>
+          <div class="field-trap" aria-hidden="true"><label for="inquiry-website">Leave this field blank</label><input id="inquiry-website" type="text" name="website" tabindex="-1" autocomplete="off"></div>
+          <p class="form-note">Share only business contact information and a general project overview.</p>
+          <button class="button form-submit" id="inquiry-submit" type="submit" disabled>Send inquiry <span class="button-arrow arrow-diagonal" aria-hidden="true"></span></button>
+          <noscript><p class="form-note">Please enable JavaScript to save your inquiry. You can still explore all website sections.</p></noscript>
+          <p class="form-status" id="inquiry-status" role="status" aria-live="polite"></p>
+          <p class="form-error" id="inquiry-error" role="alert" hidden></p>
+        </form>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-main"><div><a class="wordmark" href="index.html" aria-label="Flightpath home"><span class="brand-mark" aria-hidden="true"></span>flightpath<span class="brand-period">.</span></a><p class="footer-tagline">A direct path to your next drone.<br>A conversation built around you.</p></div><div class="footer-links"><div><p>Explore</p><a href="#solutions">Drone applications</a><a href="#government">Government &amp; military</a><a href="#process">How we work</a></div><div><p>Connect</p><a href="#contact" data-request="direct">Direct sales</a><a href="#contact" data-request="military">Program inquiries</a><a href="#contact">Request a demo</a></div><div><p>Team workspace</p><a href="sales.html">Customer &amp; sales tools <span class="arrow-diagonal" aria-hidden="true"></span></a><a href="telemetry.html">Marketing telemetry <span class="arrow-diagonal" aria-hidden="true"></span></a></div></div></div>
+      <div class="footer-bottom"><span>MGMT 3450 · Team 01 · Concept website</span><span>Illustrative aircraft and applications.</span><a href="#main">Back to top <span class="arrow-diagonal arrow-up" aria-hidden="true"></span></a></div>
+    </div>
+  </footer>
+</body>
+</html>

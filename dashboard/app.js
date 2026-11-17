@@ -5,6 +5,7 @@
   const $ = id => document.getElementById(id);
   let view = 'customers';
   const titles = {
+    inquiries:['Website inquiries','Your next conversation starts here.','Review direct sales and government requests received through the company website.'],
     discovery:['Find buyers','Find the right people. Start a useful conversation.','Explore seven target markets and build your customer list, one relationship at a time.'],
     customers:['Customers','Know your customers. Grow your opportunities.','Customer relationships, sales potential, and the next conversation — in one place.'],
     overview:['Overview','A clearer view of your pipeline.','From first contact to contract award. Keep every opportunity in sight.'],
@@ -68,23 +69,26 @@
     const s=current(),[label,title,description]=titles[view];
     $('breadcrumb').textContent=label;$('page-title').textContent=title;$('page-description').textContent=description;
     document.querySelectorAll('[data-view]').forEach(button=>{const active=button.dataset.view===view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
-    $('export').hidden=view==='discovery';
+    $('export').hidden=view==='discovery'||view==='inquiries';
     $('export').disabled=view==='customers'&&!CustomerDashboard.isReady();
     $('export').textContent=view==='customers'?'↓ Export customers':'↓ Export opportunities';
-    $('dashboard').innerHTML=view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
+    $('dashboard').innerHTML=view==='inquiries'?WebsiteInquiries.render():view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
+    $('customer-search-panel').hidden=view==='inquiries';
     $('customer-search-panel').classList.toggle('customer-search-active',view==='customers');
     $('customer-search-heading').hidden=view!=='customers';
     $('customer-filter-slot').innerHTML=view==='customers'?CustomerDashboard.renderFilters():'';
     $('customer-match-count').hidden=view!=='customers';
     $('customer-match-count').textContent=view==='customers'?CustomerDashboard.resultCount():'';
   }
-  function navigate(next) {view=next;history.replaceState(null,'','#'+next);render();}
+  function navigate(next) {view=next;history.replaceState(null,'','#'+next);render();if(view==='inquiries')WebsiteInquiries.ensureLoaded();}
   document.querySelector('nav').addEventListener('click',event=>{const button=event.target.closest('[data-view]');if(button)navigate(button.dataset.view);});
   document.querySelector('.brand').addEventListener('click',event=>{event.preventDefault();navigate('overview');});
   $('customer-filter-slot').addEventListener('change',event=>CustomerDashboard.change(event));
   $('customer-filter-slot').addEventListener('click',event=>CustomerDashboard.click(event));
-  $('dashboard').addEventListener('change',event=>CustomerDashboard.change(event));
+  $('dashboard').addEventListener('input',event=>{if(view==='inquiries')WebsiteInquiries.input(event);});
+  $('dashboard').addEventListener('change',event=>{if(view==='inquiries')WebsiteInquiries.change(event);else CustomerDashboard.change(event);});
   $('dashboard').addEventListener('click',event=>{
+    if(view==='inquiries'){WebsiteInquiries.click(event);return;}
     const prospect=event.target.closest('[data-discovery-add]');
     if(prospect){const defaults=BuyerDiscovery.draft(prospect.dataset.discoveryAdd,$('sector').value);if(defaults)CustomerDashboard.addProspect(defaults,()=>navigate('customers'));return;}
     if(CustomerDashboard.click(event))return;
@@ -104,7 +108,8 @@
     const url=URL.createObjectURL(new Blob([model.csv(rows)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
     link.href=url;link.download='flightpath-opportunities.csv';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
-  function fromHash(){view=Object.hasOwn(titles,location.hash.slice(1))?location.hash.slice(1):'customers';render();}
+  function fromHash(){view=Object.hasOwn(titles,location.hash.slice(1))?location.hash.slice(1):'customers';render();if(view==='inquiries')WebsiteInquiries.ensureLoaded();}
+  WebsiteInquiries.init(()=>{if(view==='inquiries')render();});
   window.addEventListener('hashchange',fromHash);fromHash();CustomerDashboard.init(()=>{data=CustomerDashboard.getData()||FlightpathData;render();});
 })();
 
