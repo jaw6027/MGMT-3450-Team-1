@@ -1,6 +1,35 @@
 # Flightpath — drone company website and sales workspaces
 
-A responsive drone company concept website for MGMT 3450 Team 1, focused on direct commercial sales and government/military procurement. The existing marketing telemetry and B2B/B2G sales workspaces remain available. Plain HTML, CSS, JavaScript, and SVG, with a dependency-free Node.js/SQLite server for customer records and website inquiries. All sample customer data is fictional.
+## California drone operator expansion — November 16, 2026
+
+Eight additional real businesses now seed the persistent prospect database: PG&E, Southern California Edison, Birds Eye Aerial Drones, UAV-IQ, Apollo Drone Services, West Coast Drone Operations, Alterpex and Aeronex. Reviewed programs cover utilities, infrastructure and construction inspection, agricultural biological control and exterior cleaning. All eight are labeled Non-military for the civilian programs reviewed; this is not a certification that the businesses never work with defense customers. Existing military and dual-use prospects remain available.
+
+Each addition includes company-owned evidence of drone use, location evidence with limitations, a published business contact route, a checked date, a 90-day review date, an unconfirmed monitoring-fit hypothesis and a concrete discovery step. No customer relationship, budget, fleet count, purchasing authority or buying intent is invented. City remains unconfirmed for West Coast Drone Operations and Aeronex. UAV-IQ's Whittier address is an older privacy-policy mailing address, not a verified operating base. Utility inspections may involve contractors; determine who owns the aircraft and maintenance decision before qualification. Supplier registration is a routing step, not an open tender for this service.
+
+Open `sales.html` → **Real prospect database**, or `/segment-evaluation.html#directory`. The catalog seeds SQLite on startup and preserves saved outreach when records are added or research changes. CSV includes the next research step. Fifteen pre-existing records outside California still await source recheck; coverage is incomplete and source checks remain manual.
+
+This branch combines the customer-feature stack with main's company website and inquiry inbox. All routes remain available; no runtime database from a user's laptop is copied or replaced by this source update.
+
+## Segment evaluation — team review
+
+Start `node server.cjs`, open `http://127.0.0.1:8765/sales.html#customers`, and choose **Customer segmentation**. Return with **Customer dashboard**. Use the updated server for team reviews; opening the HTML directly supports only the original monitoring-option worksheets and catalog views, not workspace reviews or CRM comparisons.
+
+**Compare segments:** select the buyer segments, Research catalog or CRM workspace, and Brandon or Josh. The side-by-side matrix shows matching companies, five-criterion review completion, customer-confirmed problems, confirmed buyer access, pilot readiness, nominations and technical blockers. Fractions use unique companies in each segment; a multi-segment CRM company can belong to several columns. Nominations count a company once even if both reviewers nominate it. Catalog and classroom CRM records remain separate. Geography and market filters exclude CRM records whose locations/market labels are unknown; choose all locations and labels to include those records. Top summary cards and the original research coverage table always describe catalog research.
+
+**Rate prospects:** reviews are independent for Brandon and Josh. Each criterion has an optional 1–5 rating, evidence note, evidence type, and source URL. Defaults are technical fit 30%, customer problem 25%, buyer access 20%, pilot readiness 15%, commercial potential 10%; change viewing weights under Prospect scoring weights. Scores require all five evidence-backed ratings; unknowns stay unassessed. Public-source ratings require an HTTP(S) link. Classroom scenarios cannot be recorded as real customer conversations. A compatibility decision requires an explanation. Known incompatibility blocks nomination, and a blocker recorded by either reviewer pauses any existing nomination for that company. Unknown compatibility remains explicitly unverified. Scores are judgments, not calibrated probabilities or independently verified buyer intent.
+
+**Team shortlist:** nominate with a reason and an owned next step. The shortlist shows all nominations across filters/data sources, reviewer, score, evidence coverage, blockers and saved timestamp. CSV export includes the reasons, actions, criterion-level evidence, evidence types, links and active scoring weights. Spreadsheet formula prefixes are neutralized. Unchecking nomination and saving removes only that nomination; the assessment is retained.
+
+Team reviews persist in a **separate SQLite sidecar**, defaulting to `.local/customers.sqlite.evaluations.sqlite` (or `CUSTOMER_DB_PATH + '.evaluations.sqlite'`); override with `EVALUATION_DB_PATH`. Runtime databases are ignored by Git. Windows connected to the **same running server** share reviews after Refresh team reviews. Separate laptops have separate databases; pushing code to GitHub does not synchronize ratings or host the app. Reviewer names are labels, not authentication. The existing loopback-only local demo is not a remotely hosted multi-user CRM.
+
+The revision-guarded `GET/HEAD/PUT /api/segment-reviews` endpoint uses the same JSON, local-host and same-origin write checks as customer edits. Conflicts and connection errors preserve the form; refresh reviews and explicitly save again after reviewing the conflict. The page reads CRM data but never writes customer records. It makes no changes to the existing customer schema, records, marketing or forecasts.
+
+The research catalog began with PR #2's 34 companies in `dashboard/prospect-catalog.js` (original `database/us-prospects.json` at commit `5e1ea4b4ed2905cfd4877dcc49c99b60b57895b1`). The catalog now contains 42 companies: 19 California records checked November 15, 2026, eight new California operators checked November 16, and 15 other-state records still awaiting recheck. Reviewed records include evidence, public business channels, review dates and separate persistent outreach tracking. This does not merge or replace PR #2 or refresh sources automatically. Direct Air Force and Navy offices are absent from this company-only catalog. Private defense contractors remain civilian organizations; market labels describe documented applications. The existing 37-company classroom CRM stays clearly labeled as sample data. Linked catalog records are counted once if a future CRM response supplies `publicProspect.key`.
+
+The original vibration, structural bending, temperature and combined monitoring-option worksheets remain available and saved per segment in each browser. Those worksheets are separate from server-saved prospect reviews. Filter selections, comparison preferences and weights are also browser-local.
+
+Validation: `node --test database/segment-evaluation.test.cjs` covers weighted scoring, unknowns, evidence coverage, deduplication, segment denominators, CSV escaping, persistence, separate reviewers, stale-write rollback, validation, HTTP authorization/origin checks and preservation of the CRM response. The new real-prospect API and store tests also cover research updates, contact evidence, recheck dates, outreach persistence, conflict rejection, validation and CRM preservation. Browser visual/interaction checks for the latest additions are pending because this environment blocks Chromium startup.
+
 
 ## Company website and sales inquiries
 
@@ -255,3 +284,84 @@ Results update immediately as the search term or selections change; no search su
 Search covers company names, industries, all assigned segments, military/civilian type, owners, lead sources, qualification, contact details and buyer roles, customer needs and notes, and opportunity names/stages/owners. Multiple filters combine with AND. Sales-stage filtering includes a company if any of its opportunities matches; each company appears once. Stage-filtered monetary summaries use only matching opportunities, so a company profile may show additional history beyond the current filter. Choosing No opportunity recorded finds companies without any opportunities. Closed-stage selections keep awarded values separate from potential revenue.
 
 The shared **Find buyers** workspace is preserved and now covers all seven markets, including other civilian operators. All generated scenario amounts remain estimates and are clearly labeled as demonstration data. Tests cover the expanded counts, preserved original records, repeat startup/deletion behavior, atomic rollback, combined filters, stage-aware summaries, no-match states, and desktop/mobile workflows.
+
+
+
+### Interactive customer segmentation
+
+Open `sales.html#customers` and choose **Customer segmentation**, or go directly to
+`segment-evaluation.html` with `node server.cjs` running. The Compare segments tab
+includes a bar comparison by buyer segment, state, or documented military-market
+focus. Location (California first), market, search, source, reviewer, and selected
+segments apply to the view. Additional qualification, assessment-status, and
+minimum-score filters apply to the segmentation chart and outreach table. Click
+a bar to select its group; click again or choose Show all groups to remove it.
+Reset segmentation filters clears only the additional filters and group selection.
+
+Ready to compare requires all five evidence-supported ratings and a Compatible
+assessment from the selected reviewer. Any reviewer's technical blocker takes
+precedence. Incomplete assessments stay separate; scores are reviewer judgments,
+not verified buying intent. Qualification is available for CRM records; catalog
+records start Not assessed. Unknown CRM locations and market labels stay unknown.
+Multi-segment records may appear in multiple bars; the prospect total is unique.
+Export matching prospects downloads the currently filtered group and includes
+the reviewer and weights. Review buttons open the existing prospect review form.
+If reviews cannot load, company counts remain visible, assessments are marked
+unavailable, and assessment filtering and export are disabled. Existing CRM,
+monitoring worksheets, nominations, and review persistence are preserved.
+
+
+### Real prospect database — California review
+
+Run `node server.cjs`, open `/sales.html#customers`, then choose **Real prospect
+database**, or open `/segment-evaluation.html#directory` directly. This directory
+contains real-company research and does not insert fictional opportunities or
+contacts into the real prospect records. The existing sample CRM remains available.
+
+The initial catalog contained 34 companies across 9 states. The current catalog contains 42 companies, including 27 in California. On November 15, 2026,
+the 19 California entries were rechecked against company-owned sources (including
+an official corporate GitHub profile) and issuer filings. Each includes separate
+activity, market, location and contact evidence, review dates, an unconfirmed fit
+hypothesis and a next research step. Other states retain prior labels and are
+explicitly Not rechecked. This is not a complete California or U.S. directory, and
+direct Air Force/Navy buying offices are not included in this company catalog.
+
+Vantage Robotics and Inspired Flight now carry Both labels based on documented
+defense and civilian offerings. General Atomics also documents nonmilitary
+environmental work; AEVEX's Both label covers company-wide defense and civilian
+aircraft work. Military/defense describes the reviewed drone business, not legal
+company ownership. Non-military describes civilian offerings found in the reviewed
+sources, not proof that defense work never occurs. Mailing addresses, historical
+address sources, parent-company routes and relevant division differences are noted.
+
+Sources checked means reviewed public pages, not independently certified operating
+status, tested contact deliverability, confirmed fit, or buying interest. No named
+buyer, budget, demand, or customer relationship has been invented. Contact forms
+and corporate inboxes are discovery starting points; supplier and engineering
+routing may still need confirmation. No messages are sent by this feature.
+
+The server creates `.local/customers.sqlite.prospects.sqlite` (or
+`PROSPECT_DB_PATH`) separately from the demonstration CRM and review database.
+Research records are seeded from `dashboard/prospect-catalog.js`; subsequent
+source-catalog updates change research fields while preserving outreach records.
+Outreach owners, statuses, notes, contact dates, next-action dates and data-issue
+flags are saved through `/api/prospects`. Each write checks the record revision;
+stale forms cannot overwrite another save. An append-only outreach history is
+retained in `prospect_outreach_history`. Initial Not contacted means no outreach
+recorded here. Do not contact and Not a fit records sort after other prospects
+in the segmentation outreach table.
+
+Source verification and outreach-status filters apply to the directory, summary
+counts and segmentation. Export filtered companies includes public contact
+channels, evidence URLs, dates and saved outreach fields. A source recheck becomes
+due after 90 days; flagging an issue immediately sets Needs recheck. Dates are
+evaluated in America/Los_Angeles. Rechecks are manual: no recurring research job or
+live provider connection is configured. To refresh evidence, update the catalog
+with the reviewed URLs and dates, test, and restart the server; saved outreach is
+preserved. These are server-local records, not a hosted multi-user CRM. Separate
+laptops do not synchronize through GitHub; back up the prospect SQLite file.
+
+If the database cannot connect, the page shows last-loaded research with a warning
+and disables outreach editing. CSV exports reflect that loaded data. Research
+fields cannot be modified through the outreach API. The existing same-origin,
+JSON-only write checks apply.
