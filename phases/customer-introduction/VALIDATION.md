@@ -13,5 +13,6 @@ Validated November 16, 2026 using the isolated local preview.
 - Hero and header “Talk to our team” links target the getting-started section, with “Your next move starts here” and “Talk to our team to get started” headings. That section does not claim submission or booking; direct team contact awaits a verified destination.
 - No console errors were reported during browser checks.
 - Hero and contact-section screenshots inspected. The contact form uses two columns at 1440px and one at 390px, with no page-level overflow. The aircraft image is a repository SVG illustration and is described as conceptual.
+- Added the requested numbered audience strip beneath the hero: Commercial & enterprise; Government & military; Direct, consultative sales. Browser verified three columns at 1440px and stacked rows at 390px without horizontal overflow; screenshot saved for review.
 
 Only the new `phases/customer-introduction/` folder is changed relative to the shared main branch. No university deployment, original site, customer database, or existing server is changed. Hosting the separate phase and choosing a direct contact destination are later integration steps.
