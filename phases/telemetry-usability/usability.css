@@ -1,0 +1,41 @@
+/* Scoped, optional additions; the existing dashboard keeps its own styling. */
+.ux-tools,.ux-help,.ux-data {color:#e7edf2;font:16px/1.6 system-ui,sans-serif;scroll-margin-top:24px}
+.ux-tools,.ux-help {border:1px solid #486575;background:#182730;padding:24px;margin:24px 0}
+.ux-kicker {color:#a9d8e9;font-size:12px!important;font-weight:750;letter-spacing:.13em;margin:0 0 8px!important}
+.ux-tools h2,.ux-help h2 {font-size:23px;letter-spacing:0;text-transform:none;margin:0 0 8px}
+.ux-heading {display:flex;justify-content:space-between;align-items:start;gap:16px;flex-wrap:wrap}
+.ux-heading>div {flex:1 1 260px}
+.ux-tools p,.ux-data p,.ux-help p {margin:8px 0;color:#cedce4}
+.ux-actions {display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0}
+.ux-tools a,.ux-help a,.ux-data a {color:#b9e5ff;text-decoration:underline;text-underline-offset:4px}
+.ux-tools button,.ux-data button,.ux-button {font:600 14px/1.4 system-ui,sans-serif!important;display:inline-block;padding:11px 14px;border:1px solid #7196aa;background:#233d4b;color:#f2f8fc;border-radius:5px;min-height:44px;cursor:pointer;text-decoration:none!important}
+.ux-tools button[aria-pressed=true],.ux-data button[aria-pressed=true] {background:#b9e5ff;color:#10202b}
+.ux-data button:disabled {opacity:.55;cursor:default}
+.ux-data .ux-heading {align-items:center}
+.ux-data {border-top:1px solid #486575;margin-top:24px;padding-top:20px}
+.ux-data h3 {margin:0;font-size:19px}
+.ux-mode {border-left:3px solid #9dc9de;padding:10px 14px;background:#101c23;font-size:14px}
+.ux-steps {padding-left:24px}.ux-steps li {padding:4px 0 8px}
+.ux-help label {display:block;font-weight:650;margin-top:24px}
+.ux-help input {display:block;width:100%;max-width:560px;box-sizing:border-box;padding:13px 14px;background:#101b22;color:#f4f8fb;border:1px solid #7196aa;border-radius:5px;font:inherit;min-height:44px}
+.ux-help input::placeholder {color:#acc0cd}
+.ux-help details,.ux-sensor-help {border-top:1px solid #486575;margin-top:12px;padding:12px 0 0}
+.ux-help summary,.ux-sensor-help summary {cursor:pointer;min-height:32px;color:#c5e9fc;font:600 15px/1.6 system-ui,sans-serif;text-transform:none;letter-spacing:0}
+.ux-sensor-help p {font:14px/1.6 system-ui,sans-serif;color:#d1dfe6;white-space:normal}
+.ux-table-scroll {max-height:320px;overflow:auto;border:1px solid #486575;margin-top:16px}
+.ux-data table {border-collapse:collapse;width:100%;text-align:left;white-space:nowrap;font-size:14px}
+.ux-data caption {text-align:left;padding:12px;background:#101c23;color:#d9e8f0;white-space:normal}
+.ux-data th,.ux-data td {padding:10px 14px;border-bottom:1px solid #3e5665}
+.ux-data th {background:#233744;position:sticky;top:0}
+.ux-data tr:nth-child(even) {background:#1d303b}
+.ux-skip {position:fixed;top:8px;left:8px;transform:translateY(-180%);z-index:999;background:#f4f8fc;color:#10202b;padding:14px;border:2px solid #10202b}
+.ux-skip:focus {transform:none}
+:where(a,button,input,select,summary,[tabindex]):focus-visible {outline:3px solid #ffdc88!important;outline-offset:4px}
+.ux-reduce-motion .monitored-arm,.ux-reduce-motion .prop {animation:none!important;transition:none!important}
+.ux-large-text main {font-size:18px}.ux-large-text main :is(p,small,label,select,.fine,.muted,.readout-note) {font-size:16px;line-height:1.65}
+.ux-large-text :is(.ux-tools,.ux-help,.ux-data) {font-size:18px}
+.ux-preview-banner {background:#e0c783;color:#18222b;padding:12px 20px;font:600 14px/1.6 system-ui,sans-serif}
+.ux-preview-banner a {color:#18222b;text-decoration:underline}
+[hidden] {display:none!important}
+@media(max-width:760px) {.ux-tools,.ux-help {padding:18px}.ux-data .ux-heading>button {width:100%}.sidebar nav {display:flex;flex-wrap:wrap;gap:4px}.sidebar nav a {min-height:44px;display:inline-flex;align-items:center;padding:8px 12px}.ux-heading>.ux-button {width:100%;text-align:center;box-sizing:border-box}}
+@media(prefers-reduced-motion:reduce) {.monitored-arm,.prop {animation:none!important;transition:none!important}}
