@@ -7,6 +7,30 @@
   menu.addEventListener('click', () => { const open = nav.classList.toggle('open'); menu.setAttribute('aria-expanded', String(open)); });
   nav.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && nav.classList.contains('open')) { closeMenu(); menu.focus(); } });
+  const sensorContent = {
+    strain: ['01 / STRAIN', 'A closer look at arm strain.', 'Strain gauges measure local stretching or compression on two selected arms. They help a team investigate how those locations respond to loading.', 'Learn about strain measurements', 'strain-details'],
+    vibration: ['02 / VIBRATION', 'Explore movement at the sensor.', 'Two accelerometers can summarize vibration at selected locations. The dashboard presents g RMS, a measure of vibration amplitude, rather than vibration frequency or a damage diagnosis.', 'Learn about vibration measurements', 'vibration-details'],
+    temperature: ['03 / TEMPERATURE', 'Add temperature to the picture.', 'Two temperature sensors near motor mounts add thermal context. Sensor placement matters: these readings do not necessarily represent the temperature inside a motor.', 'Learn about temperature measurements', 'temperature-details']
+  };
+  document.querySelector('.sensor-hotspots').hidden = false;
+  document.querySelector('.sensor-explorer').hidden = false;
+  function selectSensor(button) {
+    const content = sensorContent[button.dataset.sensor];
+    document.querySelectorAll('[data-sensor]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    ['sensor-label', 'sensor-title', 'sensor-copy'].forEach((id, i) => { document.getElementById(id).textContent = content[i]; });
+    const link = document.getElementById('sensor-learn'); link.textContent = content[3] + ' ↘'; link.href = '#' + content[4];
+  }
+  document.querySelectorAll('[data-sensor]').forEach(button => button.addEventListener('click', () => selectSensor(button)));
+  document.getElementById('sensor-learn').addEventListener('click', event => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const button = document.querySelector('[data-sensor][aria-pressed="true"]');
+    const target = document.getElementById(sensorContent[button.dataset.sensor][4]);
+    target.open = true;
+    target.scrollIntoView({block:'center', behavior:matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+    target.querySelector('summary').focus({preventScroll:true});
+  });
+  document.getElementById('sensor-learn').href = '#strain-details';
   const audiences = {
     fleet: ['FLEET & INSPECTION TEAMS', 'Bring structural context to your evaluation.', 'Explore whether measurements from selected airframe locations could complement your existing inspection records and operating history.', 'Which measurements would be useful to review alongside a scheduled inspection?', 'Fleet & inspection evaluation'],
     engineering: ['MANUFACTURERS & ENGINEERS', 'Frame a more focused engineering question.', 'Explore strain, vibration, and temperature as complementary inputs to controlled airframe tests. Define what needs to be measured before selecting a sensor configuration.', 'How do measurements at selected locations change between controlled test conditions?', 'Aircraft engineering & testing'],

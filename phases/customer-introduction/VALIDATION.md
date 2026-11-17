@@ -14,5 +14,7 @@ Validated November 16, 2026 using the isolated local preview.
 - No console errors were reported during browser checks.
 - Hero and contact-section screenshots inspected. The contact form uses two columns at 1440px and one at 390px, with no page-level overflow. The aircraft image is a repository SVG illustration and is described as conceptual.
 - Added the requested numbered audience strip beneath the hero: Commercial & enterprise; Government & military; Direct, consultative sales. Browser verified three columns at 1440px and stacked rows at 390px without horizontal overflow; screenshot saved for review.
+- Interactive illustration: each of the three sensor buttons updates the explanation and maintains exactly one pressed state. Tab then Enter selects the next sensor. Learn more opens the matching disclosure and focuses its summary. All controls are at least 44px high and remain inside the 390px viewport.
+- Vibrant color update inspected on desktop and phone: midnight-blue hero, cyan highlights, lime actions, coral temperature accents, and lighter content areas. No horizontal page overflow or console errors observed. All decoration is static; reduced-motion preferences disable transitions and smooth scrolling.
 
 Only the new `phases/customer-introduction/` folder is changed relative to the shared main branch. No university deployment, original site, customer database, or existing server is changed. Hosting the separate phase and choosing a direct contact destination are later integration steps.

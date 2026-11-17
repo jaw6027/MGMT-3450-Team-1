@@ -7,6 +7,8 @@ Prepared November 16, 2026. The user clarified that the intended audience is pro
 ## Included
 
 - A responsive introduction with plain-language explanations of arm strain, vibration, and motor-mount temperature.
+- An interactive drone illustration with touch-sized, keyboard-accessible strain, vibration, and temperature points. Selected points reveal explanations and link to the matching expanded measurement details. Positions are illustrative, not installation guidance or live sensor locations.
+- A vibrant midnight-blue, cyan, lime, and coral palette, with distinct measurement-card colors and clear call-to-action contrast. The existing SVG is tinted through CSS; its geometry is unchanged.
 - Potential-use-case content for fleet/inspection teams, manufacturers/engineers, and research/program teams.
 - Direct links to the existing university prototype. Links opening new tabs include accessible announcements.
 - A local evaluation-brief download so a visitor can prepare for a discussion without a fabricated team email, unconnected contact form, or claim that a demo was booked.
