@@ -10,6 +10,7 @@ Prepared November 16, 2026. The user clarified that the intended audience is pro
 - Potential-use-case content for fleet/inspection teams, manufacturers/engineers, and research/program teams.
 - Direct links to the existing university prototype. Links opening new tabs include accessible announcements.
 - A local evaluation-brief download so a visitor can prepare for a discussion without a fabricated team email, unconnected contact form, or claim that a demo was booked.
+- A screenshot-inspired getting-started section with full name, business email, organization, interest, primary application, expected timeline, and optional project overview. The form offers plain labels, browser validation, a “not sure yet” application, and a single-column phone layout. These details are included only in the visitor's downloaded inquiry file.
 - “Talk to our team” calls to action in the navigation and hero lead to the “Talk to our team to get started” section. A verified team email or booking/contact link is still needed for direct contact; until supplied, this section provides the local discussion-brief download and explains that nothing is sent.
 - Keyboard focus indicators, skip link, responsive navigation with Escape-to-close, native FAQ disclosures, and reduced-motion support.
 

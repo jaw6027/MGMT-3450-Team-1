@@ -23,15 +23,19 @@
   });
   document.getElementById('brief-form').addEventListener('submit', event => {
     event.preventDefault();
-    const question = document.getElementById('question');
-    if (!question.value.trim()) { question.setCustomValidity('Please describe what you would like to investigate.'); question.reportValidity(); return; }
-    question.setCustomValidity('');
+    for (const id of ['full-name', 'organization']) {
+      const field = document.getElementById(id);
+      field.setCustomValidity(field.value.trim() ? '' : 'Please enter ' + (id === 'full-name' ? 'your name.' : 'your organization.'));
+      if (!field.reportValidity()) return;
+    }
     const value = id => document.getElementById(id).value.trim();
     const text = [
       'DRONE SHM — EVALUATION DISCUSSION BRIEF', '',
-      'Organization: ' + (value('organization') || 'Not provided'),
-      'Interest: ' + value('application'), 'Timeline: ' + value('timeline'), '',
-      'Question to investigate:', value('question'), '',
+      'Full name: ' + value('full-name'),
+      'Business email: ' + value('business-email'),
+      'Organization: ' + value('organization'),
+      'Interest: ' + value('interest'), 'Primary application: ' + value('application'), 'Expected timeline: ' + value('timeline'), '',
+      'Project overview:', value('question') || 'Not provided — discuss with the team.', '',
       'Suggested discussion points:',
       '- Aircraft type and current inspection or testing workflow',
       '- Sensor placement, power, calibration, and communications',
@@ -41,9 +45,9 @@
       'This brief was created locally. It has not been sent to the project team.'
     ].join('\r\n');
     const url = URL.createObjectURL(new Blob([text], {type:'text/plain;charset=utf-8'}));
-    const link = document.createElement('a'); link.href = url; link.download = 'drone-shm-evaluation-brief.txt'; link.click();
+    const link = document.createElement('a'); link.href = url; link.download = 'drone-shm-inquiry-details.txt'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    document.getElementById('brief-status').textContent = 'Your brief is ready to download. Share the file with your existing project contact; nothing has been sent from this page.';
+    document.getElementById('brief-status').textContent = 'Your inquiry details are ready to download. Share the file with your project contact to start the conversation. Nothing has been sent from this page.';
   });
-  document.getElementById('question').addEventListener('input', event => event.target.setCustomValidity(''));
+  for (const id of ['full-name', 'organization']) document.getElementById(id).addEventListener('input', event => event.target.setCustomValidity(''));
 })();
