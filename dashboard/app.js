@@ -20,7 +20,7 @@
   const current = () => model.select(data,$('sector').value,$('search').value);
   const badge = value => `<span class="badge ${['Awarded','Active','Sales qualified','Negotiation'].includes(value)?'green':['Evaluation','Proposal submitted','Scheduled'].includes(value)?'amber':['Lost','Completed'].includes(value)?'gray':''}">${escape(value)}</span>`;
   function panel(title,description,body,action='') {return `<section class="panel"><div class="panel-header"><div><h2>${title}</h2><p>${description}</p></div>${action}</div>${body}</section>`;}
-  function table(headers,rows) {return rows.length?`<div class="table-wrap"><table><thead><tr>${headers.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">No records match these filters. Try another search or reset filters.</div>';}
+  function table(headers,rows,className='') {return rows.length?`<div class="table-wrap"><table class="${className}"><thead><tr>${headers.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<div class="empty">No records match these filters. Try another search or reset filters.</div>';}
   function stats(s) {
     const m=model.metrics(s);
     return `<div class="stats">${[
@@ -32,10 +32,14 @@
   }
   function opportunityTable(s,openOnly=false) {
     const items=openOnly?s.opportunities.filter(model.open):s.opportunities;
-    return table(['Opportunity / account','Sector','Stage','Contract value','Expected closing'],items.map(p=>{
+    return table(['Opportunity / account / buyer interests','Sector','Stage','Assigned team / next action','Follow-up date','Contract value','Expected closing'],items.map(p=>{
       const o=s.orgById.get(p.organizationId);
-      return [`<button class="link-button" data-opportunity="${p.id}">${escape(p.name)}</button><small>${escape(o.name)}</small>`,escape(o.sector),badge(p.stage),money(p.value),date(p.award)];
-    }));
+      return [`<button class="link-button" data-opportunity="${p.id}">${escape(p.name)}</button><small>${escape(o.name)}</small><small>Buyer interests: ${escape((o.interests||[]).join(', ')||'Not recorded')}</small>`,escape(o.sector),badge(PipelineModel.stage(p)),`<strong>${escape(p.owner||'Unassigned')}</strong><small>${escape(p.nextAction||'Not recorded')}</small>`,date(p.followupDate)+(PipelineModel.overdue(p)?'<strong class="pipeline-overdue">Overdue follow-up</strong>':''),money(p.value),date(p.award)];
+    }),'pipeline-table overview-opportunities');
+  }
+  function overview(s){
+    if(!CustomerDashboard.isReady())return '<section class="panel customer-message" role="status">Customer database unavailable or loading. Open Customers to refresh the connection.</section>';
+    return stats(s)+SalesPipeline.stageCounts(s.opportunities)+charts(s)+panel('Opportunities on the radar','Saved buyer interests and next actions for open opportunities.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s);
   }
   function charts(s) {
     const open=s.opportunities.filter(model.open),total=model.metrics(s).pipeline;
@@ -72,7 +76,7 @@
     $('export').hidden=view==='discovery'||view==='inquiries';
     $('export').disabled=['customers','pipeline'].includes(view)&&!CustomerDashboard.isReady();
     $('export').textContent=view==='customers'?'↓ Export customers':'↓ Export opportunities';
-    $('dashboard').innerHTML=view==='inquiries'?WebsiteInquiries.render():view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='pipeline'?SalesPipeline.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
+    $('dashboard').innerHTML=view==='inquiries'?WebsiteInquiries.render():view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='pipeline'?SalesPipeline.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):view==='overview'?overview(s):stats(s)+(view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
     $('customer-search-panel').hidden=view==='inquiries';
     $('customer-search-panel').classList.toggle('customer-search-active',view==='customers');
     $('customer-search-heading').hidden=view!=='customers';
@@ -89,6 +93,7 @@
   $('dashboard').addEventListener('change',event=>{if(view==='inquiries')WebsiteInquiries.change(event);else CustomerDashboard.change(event);});
   $('dashboard').addEventListener('click',event=>{
     if(view==='inquiries'){WebsiteInquiries.click(event);return;}
+    const classView=event.target.closest('[data-classroom-go]');if(classView){$('search').value=ClassroomWalkthrough.organizationName;$('sector').value='all';navigate(classView.dataset.classroomGo);return;}
     const prospect=event.target.closest('[data-discovery-add]');
     if(prospect){const defaults=BuyerDiscovery.draft(prospect.dataset.discoveryAdd,$('sector').value);if(defaults)CustomerDashboard.addProspect(defaults,()=>navigate('customers'));return;}
     const record=event.target.closest('[data-pipeline-record]');if(record){SalesPipeline.open(Number(record.dataset.pipelineRecord));return;}

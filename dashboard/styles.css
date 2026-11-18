@@ -101,3 +101,12 @@ footer a{color:inherit;text-underline-offset:3px}
 .pipeline-table th,.pipeline-table td{padding:14px 12px;overflow-wrap:anywhere;line-height:1.6}
 .pipeline-table th:first-child{width:23%}
 .pipeline-table .badge{white-space:normal}
+
+/* Classroom guide describes buyer conversations; measurements stay in telemetry. */
+.classroom-panel{padding:24px;border-top:4px solid #91af69}
+.classroom-panel h2{font-size:20px;margin:10px 0}
+.classroom-panel p,.classroom-panel li{font-size:12px;line-height:1.8;color:#52686c}
+.classroom-panel summary{cursor:pointer;font-size:13px;font-weight:600;padding:12px 0;color:#214c59}
+.classroom-panel li{padding-bottom:9px}
+.classroom-actions{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+.overview-opportunities{min-width:1000px}

@@ -19,14 +19,16 @@ function expandedProspects(today=new Date().toISOString().slice(0,10)){
       opportunities:[{name:'Fictional sensor evaluation '+code.toUpperCase(),stage:['Research','Qualification','Evaluation','Proposal submitted'][index],value:index===0?null:[0,15000,45000,90000][index]+market*1000,probability:[null,.2,.4,.6][index],award:shift(30+index*30+market),owner}],
       followups:[{dueDate:shift([0,2,7,14][index]),action:'Fictional next step: review demonstration monitoring requirements',owner,completed:false}],
       note:{author:'Demo scenario pack',text:'FICTIONAL DEMONSTRATION DATA. This organization, contact, qualification, budget, timeline and opportunity are invented for classroom search/filter exercises. No real buyer, customer relationship, procurement or contract is represented.'}};
-  }));
+  })).concat([require('./classroom-scenario.cjs').classroomScenario(today)]);
 }
 function expandDemo(db,today){
   db.exec('BEGIN IMMEDIATE');
   try{
-    if(db.prepare('SELECT value FROM metadata WHERE key=?').get(marker)){db.exec('COMMIT');return 0;}
+    const expanded=Boolean(db.prepare('SELECT value FROM metadata WHERE key=?').get(marker));
+    const classroom=Boolean(db.prepare("SELECT value FROM metadata WHERE key='classroomInspectionV1'").get());
+    if(expanded&&classroom){db.exec('COMMIT');return 0;}
     function insert(table,fields){const keys=Object.keys(fields);return Number(db.prepare(`INSERT INTO ${table} (${keys.join(',')}) VALUES (${keys.map(()=>'?').join(',')})`).run(...Object.values(fields).map(v=>typeof v==='boolean'?Number(v):v)).lastInsertRowid);}
-    const prospects=expandedProspects(today);
+    const prospects=expanded?(!classroom?[require('./classroom-scenario.cjs').classroomScenario(today)]:[]):expandedProspects(today);
     for(const payload of prospects){
       const row=validateCustomer({...payload,revision:0}),organizationId=insert('organizations',{...row.company,interests:JSON.stringify(row.company.interests)});
       const categoryId=db.prepare("SELECT id FROM customer_categories WHERE kind='segment' AND normalizedName=?").get(categoryKey(row.company.segment))?.id;
@@ -35,9 +37,11 @@ function expandDemo(db,today){
       for(const contact of row.contacts){const {id,...fields}=contact;insert('leads',{organizationId,...fields});}
       for(const opportunity of row.opportunities){const {id,...fields}=opportunity;insert('opportunities',{organizationId,...fields});}
       for(const task of row.followups){const {id,...fields}=task;insert('followups',{organizationId,...fields});}
+      if(row.communication)insert('engagements',{organizationId,...row.communication});
       insert('notes',{organizationId,date:today||new Date().toISOString().slice(0,10),...row.note});
     }
-    db.prepare('INSERT INTO metadata (key,value) VALUES (?,?)').run(marker,String(prospects.length));
+    if(!expanded)db.prepare('INSERT INTO metadata (key,value) VALUES (?,?)').run(marker,String(prospects.length));
+    db.prepare("INSERT OR IGNORE INTO metadata VALUES ('classroomInspectionV1','1')").run();
     db.exec("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'");
     if(db.prepare('PRAGMA foreign_key_check').all().length)throw new Error('Expanded demo relationship check failed.');
     db.exec('COMMIT');return prospects.length;

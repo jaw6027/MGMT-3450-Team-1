@@ -383,3 +383,19 @@ In **Customers**, search by organization name and combine it with **Market segme
 Profiles put use case, main business need, **Potential value to the customer**, contact role, latest recorded interaction and open opportunities first. Closed deals remain in a separate history. **Edit customer** saves use case and potential value as optional text (up to 5,000 characters each); they are searchable and included in customer CSV exports. The last interaction comes from recorded communications; absent interactions stay explicitly unrecorded.
 
 The classroom demo uses fictional organizations and contacts. Inspection and manufacturing scenarios illustrate possible buyer benefits to validate, rather than proven performance claims. An additive SQLite migration preserves existing data and team-entered fields; example text is backfilled only into blank fields on identifiable unchanged demo scenarios. Technical telemetry remains unchanged.
+
+## Brandon and Josh: 10-minute classroom walkthrough
+
+Open `/sales.html#customers` and find **FICTIONAL CLASSROOM WALKTHROUGH / BRANDON & JOSH**, then choose **Open class example**. Expand the guide for the script, links to fictional examples across all six target markets, a role switch using a drone manufacturer, and feedback prompts. The demo now contains 38 fictional CRM organizations (the original nine plus 29 clearly labeled scenarios); researched real prospects remain in their separate directory.
+
+The dedicated example is **Fictional — Clearspan Inspection Services (Class demo)**. Its operations manager wants less downtime and fewer interruptions to scheduled bridge and utility inspections. It starts with an open opportunity at **Contacted**, no recorded buyer monitoring interest, and no opportunity follow-up date.
+
+1. Brandon operates the dashboard while Josh observes. Open the profile and review the buyer context and fictional discovery call.
+2. Choose **Edit customer**, select **Vibration** under **Buyer interests**, and save.
+3. Reopen the profile and select **Fictional — Clearspan vibration monitoring demo**. Change **Contacted → Demo Scheduled**, assign Brandon or Josh, enter “Confirm the vibration demo agenda and ask about inspection downtime,” choose a future follow-up date, and save.
+4. Verify the same interest, stage, next action and date on the profile, pipeline and overview. The overview and pipeline stage cards update from the saved records. Refresh to verify persistence. Moving between these two open stages does not change the open-opportunity total.
+5. Optionally test an overdue date and restore the planned future date. Switch roles using the manufacturer's fictional maintenance-data value example. Discuss what was clear, confusing or missing.
+
+The class example is added once to existing demo databases without overwriting other records. Edits persist, startup does not reset the scenario, and a deleted example is not silently recreated. To repeat from Contacted, explicitly edit this labeled fictional scenario back to its starting fields; never reset the whole database. `CUSTOMER_DEMO_EXPANSION=0` disables demo expansion.
+
+Customer records describe buyer interests and team plans. Selecting Vibration records a topic of interest; it does not generate or copy sensor measurements. Technical sensor/telemetry files are unchanged.

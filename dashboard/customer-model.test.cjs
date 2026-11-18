@@ -70,7 +70,7 @@ test('follow-up alerts separate overdue, today-to-Sunday, completed tasks and mi
 test('search terms and combined filters find fictional prospects across every requested field',()=>{
  const {openStore}=require('../database/customer-store.cjs');const store=openStore(':memory:',{expandDemo:true});
  try{
-  const expanded=store.read();assert.equal(model.select(expanded).organizations.length,37);
+  const expanded=store.read();assert.equal(model.select(expanded).organizations.length,38);
   assert.equal(model.select(expanded,{query:'  COBALT  '}).organizations.length,1);
   const result=model.select(expanded,{query:'Vanessa research',industry:'Aerospace & defense',segment:'U.S. Air Force',type:'Military',owner:'Vanessa',source:'Referral',qualification:'New Lead',stage:'Research',relationship:'Prospect'});
   assert.equal(result.organizations.length,1);assert.match(result.organizations[0].name,/Cobalt/);assert.equal(result.opportunities.length,1);assert.equal(result.opportunities[0].stage,'Research');
