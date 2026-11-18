@@ -36,6 +36,7 @@ function demoData(today = new Date().toISOString().slice(0,10)) {
     {id:2,organizationId:3,date:shift(-1),author:'Taylor Chen',text:'Sample relationship note: completed a sensor validation workshop; future deployment remains a separate opportunity.'},
     {id:3,organizationId:7,date:shift(-2),author:'Taylor Chen',text:'Sample qualification note: needs aircraft compatibility and sensor weight information.'}
   ];
+  for(const company of data.organizations)Object.assign(company,require('./buyer-demo.cjs').buyerContext(company.segment));
   data.meta={sampleData:true,seededOn:today};
   return data;
 }

@@ -374,3 +374,12 @@ Run `node server.cjs` and open `/sales.html#pipeline`. The existing customer wor
 Opportunity follow-ups are distinct from existing company-level tasks. Missing dates remain unscheduled; open opportunities dated before today's UTC date show an overdue flag. Closed deals are excluded from open counts, forecasts and overdue flags. Closing requires an outcome reason; closing does not invent awarded revenue, values or win probabilities. Existing procurement stages are preserved and grouped for display until explicitly changed. SQLite adds only `nextAction` and `followupDate` columns; existing rows and linked company tasks remain intact. The technical sensor/telemetry dashboard is unchanged.
 
 Validation: `node --test dashboard/*.test.cjs database/*.test.cjs` includes HTTP save/read/restart persistence, stage count changes, stale-write rejection, closed-stage handling and overdue date boundaries.
+
+
+## Organization profiles and buyer value
+
+In **Customers**, search by organization name and combine it with **Market segment**: U.S. Air Force, U.S. Navy, defense contractors, commercial drone manufacturers, agricultural drone companies, or infrastructure inspection businesses. Existing additional segments remain available. The infrastructure label uses the existing `Infrastructure inspection companies` category internally, preserving saved memberships.
+
+Profiles put use case, main business need, **Potential value to the customer**, contact role, latest recorded interaction and open opportunities first. Closed deals remain in a separate history. **Edit customer** saves use case and potential value as optional text (up to 5,000 characters each); they are searchable and included in customer CSV exports. The last interaction comes from recorded communications; absent interactions stay explicitly unrecorded.
+
+The classroom demo uses fictional organizations and contacts. Inspection and manufacturing scenarios illustrate possible buyer benefits to validate, rather than proven performance claims. An additive SQLite migration preserves existing data and team-entered fields; example text is backfilled only into blank fields on identifiable unchanged demo scenarios. Technical telemetry remains unchanged.

@@ -44,6 +44,7 @@ function validateCustomer(payload){
     industry:categoryName(company.industry,'Industry'),segment:selectedSegments[0],
     relationship:choice(company.relationship,choices.relationships,'relationship'),interests:[...new Set(company.interests.map(i=>choice(i,choices.interests,'product interest')))],needs:text(company.needs,'Customer needs',{max:5000})
   }};
+  for(const field of ['useCase','potentialValue'])if(company[field]!==undefined)result.company[field]=text(company[field],field==='useCase'?'Use case':'Potential value to the customer',{max:5000});
   if(company.accountOwner!==undefined)result.company.accountOwner=choice(company.accountOwner,['',...choices.accountOwners],'account owner');
   if(company.leadSource!==undefined)result.company.leadSource=choice(company.leadSource,['',...choices.leadSources],'lead source');
   for(const [field,key] of [['qualificationStatus','qualificationStatuses'],['budgetStatus','budgetStatuses'],['decisionMakerContacted','decisionMakerStatuses'],['purchaseTimeline','purchaseTimelines'],['interestLevel','interestLevels']])if(company[field]!==undefined)result.company[field]=choice(company[field],['',...choices[key]],field);

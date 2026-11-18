@@ -5,7 +5,7 @@ const path=require('node:path');
 const {demoData}=require('./demo.cjs');
 const {choices,fail,revision,validateCustomer,categoryName,categoryKey}=require('./customer-input.cjs');
 const tables={
-  organizations:{id:'INTEGER PRIMARY KEY',name:'TEXT NOT NULL',sector:'TEXT NOT NULL',clearance:'TEXT',customerType:"TEXT NOT NULL CHECK(customerType IN ('Military','Civilian'))",industry:'TEXT NOT NULL',segment:'TEXT NOT NULL',relationship:"TEXT NOT NULL CHECK(relationship IN ('Customer','Prospect'))",interests:'TEXT NOT NULL',needs:'TEXT'},
+  organizations:{id:'INTEGER PRIMARY KEY',name:'TEXT NOT NULL',sector:'TEXT NOT NULL',clearance:'TEXT',customerType:"TEXT NOT NULL CHECK(customerType IN ('Military','Civilian'))",industry:'TEXT NOT NULL',segment:'TEXT NOT NULL',relationship:"TEXT NOT NULL CHECK(relationship IN ('Customer','Prospect'))",interests:'TEXT NOT NULL',needs:'TEXT',useCase:"TEXT NOT NULL DEFAULT ''",potentialValue:"TEXT NOT NULL DEFAULT ''"},
   leads:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',name:'TEXT NOT NULL',role:'TEXT',stage:'TEXT NOT NULL',score:'INTEGER CHECK(score BETWEEN 0 AND 100)',email:'TEXT',phone:'TEXT'},
   opportunities:{id:'INTEGER PRIMARY KEY',organizationId:'INTEGER NOT NULL REFERENCES organizations(id)',name:'TEXT NOT NULL',stage:'TEXT NOT NULL',value:'INTEGER CHECK(value >= 0)',probability:'REAL CHECK(probability BETWEEN 0 AND 1)',award:'TEXT',owner:'TEXT'},
   campaigns:{id:'INTEGER PRIMARY KEY',name:'TEXT NOT NULL',channel:'TEXT',status:'TEXT',sectors:'TEXT NOT NULL',budget:'INTEGER CHECK(budget >= 0)',leadIds:'TEXT NOT NULL'},
@@ -33,7 +33,7 @@ function openStore(filename,{expandDemo=false}={}){
     }
     db.prepare("INSERT OR IGNORE INTO metadata (key,value) VALUES ('revision','0')").run();
     // Additive migration: leave every existing field and linked record intact.
-    for(const [table,column] of [['organizations','accountOwner'],['organizations','leadSource'],['leads','buyerRole']]){
+    for(const [table,column] of [['organizations','useCase'],['organizations','potentialValue'],['organizations','accountOwner'],['organizations','leadSource'],['leads','buyerRole']]){
       if(!db.prepare(`PRAGMA table_info(${table})`).all().some(c=>c.name===column))db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
     }
     db.exec(`CREATE TABLE IF NOT EXISTS customer_categories (
@@ -75,6 +75,17 @@ function openStore(filename,{expandDemo=false}={}){
       // Existing awarded/delivery values were already recorded as contract values.
       db.exec("UPDATE opportunities SET awardedValue=value WHERE stage IN ('Awarded','Delivery') AND awardedValue IS NULL");
       db.prepare("INSERT INTO metadata VALUES ('forecastMigration','1')").run();
+    }
+    if(!db.prepare("SELECT value FROM metadata WHERE key='buyerContextDemoV1'").get()){
+      const {buyerContext}=require('./buyer-demo.cjs');
+      const samples=[...demoData().organizations,...require('./expanded-demo.cjs').expandedProspects().map(p=>p.company)];
+      let changed=0;
+      for(const sample of samples){
+        const context=buyerContext(sample.segment);
+        for(const column of ['useCase','potentialValue'])changed+=Number(db.prepare(`UPDATE organizations SET ${column}=? WHERE name=? AND needs=? AND ${column}=''`).run(context[column],sample.name,sample.needs).changes);
+      }
+      if(changed)db.exec("UPDATE metadata SET value=CAST(value AS INTEGER)+1 WHERE key='revision'");
+      db.prepare("INSERT INTO metadata VALUES ('buyerContextDemoV1','1')").run();
     }
     if(db.prepare('PRAGMA foreign_key_check').all().length)throw new Error('Database migration failed its relationship check.');
     db.exec('COMMIT');

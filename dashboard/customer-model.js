@@ -8,7 +8,7 @@ const CustomerModel=(()=>{
     const organizations=data.organizations.filter(o=>{
       const contacts=data.leads.filter(l=>l.organizationId===o.id);
       const deals=data.opportunities.filter(p=>p.organizationId===o.id);
-      const text=[o.name,o.industry,...(o.segments||[o.segment]),...((o.segments||[o.segment]).includes('Civilian drone operators')?['Other civilian drone operators']:[]),o.accountOwner,o.leadSource,o.qualificationStatus,o.budgetStatus,o.decisionMakerContacted,o.purchaseTimeline,o.interestLevel,o.customerType,o.relationship,o.needs,...deals.flatMap(p=>[p.name,p.stage,p.owner,p.nextAction,p.followupDate]),...o.interests,...contacts.flatMap(l=>[l.name,l.email,l.phone,l.role,l.buyerRole]),...data.notes.filter(n=>n.organizationId===o.id).map(n=>n.text)];
+      const text=[o.name,o.industry,...(o.segments||[o.segment]),...((o.segments||[o.segment]).includes('Civilian drone operators')?['Other civilian drone operators']:[]),o.accountOwner,o.leadSource,o.qualificationStatus,o.budgetStatus,o.decisionMakerContacted,o.purchaseTimeline,o.interestLevel,o.customerType,o.relationship,o.needs,o.useCase,o.potentialValue,...deals.flatMap(p=>[p.name,p.stage,p.owner,p.nextAction,p.followupDate]),...o.interests,...contacts.flatMap(l=>[l.name,l.email,l.phone,l.role,l.buyerRole]),...data.notes.filter(n=>n.organizationId===o.id).map(n=>n.text)];
       return (sector==='all'||o.sector===sector)&&(type==='all'||o.customerType===type)&&(relationship==='all'||o.relationship===relationship)&&(industry==='all'||o.industry===industry)&&(segment==='all'||(o.segments||[o.segment]).includes(segment))&&(owner==='all'||(o.accountOwner||'')===owner)&&(source==='all'||(o.leadSource||'')===source)&&(qualification==='all'||(o.qualificationStatus||'')===qualification)&&(stage==='all'||(stage==='none'?deals.length===0:deals.some(p=>p.stage===stage)))&&tokens.every(token=>text.some(t=>String(t??'').toLowerCase().includes(token)));
     });
     const ids=new Set(organizations.map(o=>o.id));
@@ -42,7 +42,7 @@ const CustomerModel=(()=>{
     const company=data.organizations.find(o=>o.id===id);
     if(!company)return null;
     const linked=key=>data[key].filter(r=>r.organizationId===id);
-    return {...company,contacts:linked('leads'),opportunities:linked('opportunities'),notes:linked('notes').sort((a,b)=>b.date.localeCompare(a.date)),communications:linked('engagements').sort((a,b)=>b.date.localeCompare(a.date)),lastContact:linked('engagements').map(e=>e.date).sort().at(-1)||null,nextFollowup:linked('followups').filter(f=>!f.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0]||null};
+    return {...company,lastInteraction:linked('engagements').sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id)[0]||null,openOpportunities:linked('opportunities').filter(open),closedOpportunities:linked('opportunities').filter(p=>!open(p)),contacts:linked('leads'),opportunities:linked('opportunities'),notes:linked('notes').sort((a,b)=>b.date.localeCompare(a.date)),communications:linked('engagements').sort((a,b)=>b.date.localeCompare(a.date)),lastContact:linked('engagements').map(e=>e.date).sort().at(-1)||null,nextFollowup:linked('followups').filter(f=>!f.completed).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))[0]||null};
   }
   return {select,summary,profile,open,alerts,total,weighted,qualification,forecast};
 })();
