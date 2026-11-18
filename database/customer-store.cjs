@@ -68,7 +68,7 @@ function openStore(filename,{expandDemo=false}={}){
     for(const column of ['qualificationStatus','budgetStatus','decisionMakerContacted','purchaseTimeline','interestLevel']){
       if(!db.prepare('PRAGMA table_info(organizations)').all().some(c=>c.name===column))db.exec(`ALTER TABLE organizations ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
     }
-    for(const [column,type] of [['outcomeReason',"TEXT NOT NULL DEFAULT ''"],['awardedValue','INTEGER CHECK(awardedValue >= 0)']]){
+    for(const [column,type] of [['outcomeReason',"TEXT NOT NULL DEFAULT ''"],['awardedValue','INTEGER CHECK(awardedValue >= 0)'],['nextAction',"TEXT NOT NULL DEFAULT ''"],['followupDate','TEXT']]){
       if(!db.prepare('PRAGMA table_info(opportunities)').all().some(c=>c.name===column))db.exec(`ALTER TABLE opportunities ADD COLUMN ${column} ${type}`);
     }
     if(!db.prepare("SELECT value FROM metadata WHERE key='forecastMigration'").get()){
@@ -133,7 +133,7 @@ function openStore(filename,{expandDemo=false}={}){
       if(emails.length)fail('This company already has a contact with that email address.');
       for(const opportunity of input.opportunities){
         const previous=opportunity.id===null?null:db.prepare('SELECT stage FROM opportunities WHERE id=? AND organizationId=?').get(opportunity.id,id);
-        if(['Awarded','Delivery','Lost'].includes(opportunity.stage)&&opportunity.stage!==previous?.stage&&!opportunity.outcomeReason?.trim())fail('Record a reason when marking an opportunity as won, delivered, or lost.');
+        if(['Awarded','Delivery','Lost','Closed Won','Closed Lost'].includes(opportunity.stage)&&opportunity.stage!==previous?.stage&&!opportunity.outcomeReason?.trim())fail('Record a reason when marking an opportunity as won, delivered, or lost.');
       }
       saveRows('opportunities',id,input.opportunities);
       saveRows('followups',id,input.followups);

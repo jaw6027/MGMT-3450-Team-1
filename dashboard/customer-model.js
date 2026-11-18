@@ -1,5 +1,5 @@
 const CustomerModel=(()=>{
-  const open=p=>!['Awarded','Delivery','Lost','Cancelled'].includes(p.stage);
+  const open=p=>!['Awarded','Delivery','Lost','Cancelled','Closed Won','Closed Lost'].includes(p.stage);
   const known=value=>typeof value==='number'&&Number.isFinite(value);
   function total(rows,field='value'){const included=rows.filter(r=>known(r[field]));return included.length?included.reduce((n,r)=>n+r[field],0):rows.length?null:0;}
   function weighted(rows){return total(rows.map(p=>({value:known(p.value)&&known(p.probability)?p.value*p.probability:null})));}
@@ -8,14 +8,14 @@ const CustomerModel=(()=>{
     const organizations=data.organizations.filter(o=>{
       const contacts=data.leads.filter(l=>l.organizationId===o.id);
       const deals=data.opportunities.filter(p=>p.organizationId===o.id);
-      const text=[o.name,o.industry,...(o.segments||[o.segment]),...((o.segments||[o.segment]).includes('Civilian drone operators')?['Other civilian drone operators']:[]),o.accountOwner,o.leadSource,o.qualificationStatus,o.budgetStatus,o.decisionMakerContacted,o.purchaseTimeline,o.interestLevel,o.customerType,o.relationship,o.needs,...deals.flatMap(p=>[p.name,p.stage,p.owner]),...o.interests,...contacts.flatMap(l=>[l.name,l.email,l.phone,l.role,l.buyerRole]),...data.notes.filter(n=>n.organizationId===o.id).map(n=>n.text)];
+      const text=[o.name,o.industry,...(o.segments||[o.segment]),...((o.segments||[o.segment]).includes('Civilian drone operators')?['Other civilian drone operators']:[]),o.accountOwner,o.leadSource,o.qualificationStatus,o.budgetStatus,o.decisionMakerContacted,o.purchaseTimeline,o.interestLevel,o.customerType,o.relationship,o.needs,...deals.flatMap(p=>[p.name,p.stage,p.owner,p.nextAction,p.followupDate]),...o.interests,...contacts.flatMap(l=>[l.name,l.email,l.phone,l.role,l.buyerRole]),...data.notes.filter(n=>n.organizationId===o.id).map(n=>n.text)];
       return (sector==='all'||o.sector===sector)&&(type==='all'||o.customerType===type)&&(relationship==='all'||o.relationship===relationship)&&(industry==='all'||o.industry===industry)&&(segment==='all'||(o.segments||[o.segment]).includes(segment))&&(owner==='all'||(o.accountOwner||'')===owner)&&(source==='all'||(o.leadSource||'')===source)&&(qualification==='all'||(o.qualificationStatus||'')===qualification)&&(stage==='all'||(stage==='none'?deals.length===0:deals.some(p=>p.stage===stage)))&&tokens.every(token=>text.some(t=>String(t??'').toLowerCase().includes(token)));
     });
     const ids=new Set(organizations.map(o=>o.id));
     return Object.fromEntries(['leads','opportunities','engagements','followups','notes'].map(key=>[key,data[key].filter(r=>ids.has(r.organizationId)&&(key!=='opportunities'||stage==='all'||r.stage===stage))]).concat([['organizations',organizations]]));
   }
   function summary(data){
-    const active=data.opportunities.filter(open),won=data.opportunities.filter(p=>['Awarded','Delivery'].includes(p.stage));
+    const active=data.opportunities.filter(open),won=data.opportunities.filter(p=>['Awarded','Delivery','Closed Won'].includes(p.stage));
     const groups=field=>Object.entries(data.organizations.reduce((acc,o)=>(acc[o[field]]=(acc[o[field]]||0)+1,acc),Object.create(null))).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
     const stages=['Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Renewal'];
     active.forEach(p=>{if(!stages.includes(p.stage))stages.push(p.stage);});

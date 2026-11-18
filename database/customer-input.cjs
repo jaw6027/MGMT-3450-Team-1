@@ -14,7 +14,7 @@ const choices={
   interestLevels:['Not interested','Low','Moderate','High'],
   interests:['Vibration','Structural bending','Temperature'],
   leadStages:['New','Marketing qualified','Sales qualified','Nurture','Disqualified','Converted'],
-  opportunityStages:['Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Awarded','Delivery','Renewal','Lost','Cancelled'],
+  opportunityStages:[...require('../dashboard/pipeline-model.js').stages,'Research','Qualification','Budget planning','RFI / market research','Solicitation / RFP','Proposal submitted','Evaluation','Negotiation','Awarded','Delivery','Renewal','Lost','Cancelled'],
   communicationTypes:['Call','Email','Meeting','Demo','Other']
 };
 function fail(message,status=400){const error=new Error(message);error.status=status;throw error;}
@@ -53,7 +53,7 @@ function validateCustomer(payload){
     return {...(c.buyerRole===undefined?{}:{buyerRole:choice(c.buyerRole,['',...choices.buyerRoles],'buyer role')}),id:id(c.id),name:text(c.name,'Contact name',{required:true,max:150}),email,phone:text(c.phone,'Phone number',{max:60}),role:text(c.role,'Contact role',{max:150}),stage:choice(c.stage,choices.leadStages,'lead qualification'),score:number(c.score??0,'Lead score',0,100,true)};
   });
   const emails=result.contacts.map(c=>c.email.toLowerCase()).filter(Boolean);if(new Set(emails).size!==emails.length)fail('A contact email is repeated for this company.');
-  result.opportunities=rows(payload.opportunities,'Opportunities',o=>({id:id(o.id),name:text(o.name,'Opportunity name',{required:true,max:200}),stage:choice(o.stage,choices.opportunityStages,'sales stage'),value:o.value===null||o.value===undefined?null:number(o.value,'Contract value',0,1e12,true),probability:o.probability===null||o.probability===undefined?null:number(o.probability,'Win probability',0,1),award:date(o.award,'Expected closing date'),owner:text(o.owner,'Opportunity owner',{max:150}),...(o.outcomeReason===undefined?{}:{outcomeReason:text(o.outcomeReason,'Won/lost reason',{max:2000})}),...(o.awardedValue===undefined?{}:{awardedValue:o.awardedValue===null?null:number(o.awardedValue,'Awarded contract value',0,1e12,true)})}));
+  result.opportunities=rows(payload.opportunities,'Opportunities',o=>({id:id(o.id),name:text(o.name,'Opportunity name',{required:true,max:200}),stage:choice(o.stage,choices.opportunityStages,'sales stage'),value:o.value===null||o.value===undefined?null:number(o.value,'Contract value',0,1e12,true),probability:o.probability===null||o.probability===undefined?null:number(o.probability,'Win probability',0,1),award:date(o.award,'Expected closing date'),owner:text(o.owner,'Opportunity owner',{max:150}),...(o.nextAction===undefined?{}:{nextAction:text(o.nextAction,'Next action',{max:1000})}),...(o.followupDate===undefined?{}:{followupDate:date(o.followupDate,'Opportunity follow-up date')}),...(o.outcomeReason===undefined?{}:{outcomeReason:text(o.outcomeReason,'Won/lost reason',{max:2000})}),...(o.awardedValue===undefined?{}:{awardedValue:o.awardedValue===null?null:number(o.awardedValue,'Awarded contract value',0,1e12,true)})}));
   result.followups=rows(payload.followups,'Follow-ups',f=>{
     if(typeof f.completed!=='boolean')fail('Follow-up completion must be true or false.');
     return {id:id(f.id),dueDate:date(f.dueDate,'Follow-up date',true),action:text(f.action,'Follow-up action',{required:true,max:1000}),owner:text(f.owner,'Follow-up owner',{required:true,max:150}),completed:f.completed};

@@ -85,3 +85,14 @@ footer a{color:inherit;text-underline-offset:3px}
 .inquiry-notice p{margin:0 0 16px}
 .inquiry-error h3{color:#963e2e}
 @media(max-width:700px){.inquiry-inbox .panel-header{flex-direction:column}.inquiry-filters{display:grid;grid-template-columns:1fr;padding:0 17px 18px;gap:13px}.inquiry-filters label:first-child{min-width:0}.inquiry-filters .quiet{justify-self:start}.inquiry-list{padding:0 17px 17px}.inquiry-card{padding:16px}.inquiry-card-heading{flex-direction:column;gap:12px}.inquiry-summary{grid-template-columns:1fr;gap:12px}.inquiry-summary>div{display:grid;grid-template-columns:75px 1fr;gap:10px}.inquiry-summary dt{margin-bottom:0}.inquiry-count,.inquiry-notice{padding-left:17px;padding-right:17px}}
+
+/* Sales pipeline reuses the customer workspace's panels, forms and tables. */
+.pipeline-stages{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.pipeline-stage{padding:18px 12px;display:flex;flex-direction:column;gap:8px}
+.pipeline-stage h2{font-size:13px;min-height:32px;margin:0}
+.pipeline-stage strong{font-size:28px;color:var(--ink,#214c59)}
+.pipeline-stage span,.pipeline-help{font-size:12px;color:#52686c}
+.pipeline-help{padding:0 24px 12px;line-height:1.6}
+.pipeline-overdue{display:block;color:#a12d22;font-size:12px;margin-top:6px}
+@media(max-width:1100px){.pipeline-stages{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:640px){.pipeline-stages{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -365,3 +365,12 @@ If the database cannot connect, the page shows last-loaded research with a warni
 and disables outreach editing. CSV exports reflect that loaded data. Research
 fields cannot be modified through the outreach API. The existing same-origin,
 JSON-only write checks apply.
+
+
+## Editable sales pipeline
+
+Run `node server.cjs` and open `/sales.html#pipeline`. The existing customer workspace now groups opportunities into New Lead, Contacted, Demo Scheduled, Pilot Evaluation, Proposal Sent, Closed Won, and Closed Lost. Select an opportunity (also available from customer profiles) to save its stage, assigned team member, next action and follow-up date. Counts update from the saved database response and persist after refresh. Search covers organization, market segment, opportunity, assignee, stage and next action; CSV follows the visible pipeline search.
+
+Opportunity follow-ups are distinct from existing company-level tasks. Missing dates remain unscheduled; open opportunities dated before today's UTC date show an overdue flag. Closed deals are excluded from open counts, forecasts and overdue flags. Closing requires an outcome reason; closing does not invent awarded revenue, values or win probabilities. Existing procurement stages are preserved and grouped for display until explicitly changed. SQLite adds only `nextAction` and `followupDate` columns; existing rows and linked company tasks remain intact. The technical sensor/telemetry dashboard is unchanged.
+
+Validation: `node --test dashboard/*.test.cjs database/*.test.cjs` includes HTTP save/read/restart persistence, stage count changes, stale-write rejection, closed-stage handling and overdue date boundaries.

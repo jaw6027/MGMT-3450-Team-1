@@ -11,7 +11,7 @@
     overview:['Overview','A clearer view of your pipeline.','From first contact to contract award. Keep every opportunity in sight.'],
     campaigns:['Campaigns','Make every touchpoint count.','Explore campaign audiences, activity, and planned investment.'],
     leads:['Leads & accounts','Relationships that move you forward.','Know the people and organizations behind your next opportunity.'],
-    pipeline:['Sales pipeline','From possibility to procurement.','Track every deal across commercial and government sales cycles.']
+    pipeline:['Sales pipeline','Move every opportunity forward.','Track seven sales stages, ownership, next actions, and follow-up dates.']
   };
   const escape = value => String(value).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const money = value => value===null||value===undefined?'Unknown':new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(value);
@@ -70,9 +70,9 @@
     $('breadcrumb').textContent=label;$('page-title').textContent=title;$('page-description').textContent=description;
     document.querySelectorAll('[data-view]').forEach(button=>{const active=button.dataset.view===view;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
     $('export').hidden=view==='discovery'||view==='inquiries';
-    $('export').disabled=view==='customers'&&!CustomerDashboard.isReady();
+    $('export').disabled=['customers','pipeline'].includes(view)&&!CustomerDashboard.isReady();
     $('export').textContent=view==='customers'?'↓ Export customers':'↓ Export opportunities';
-    $('dashboard').innerHTML=view==='inquiries'?WebsiteInquiries.render():view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
+    $('dashboard').innerHTML=view==='inquiries'?WebsiteInquiries.render():view==='discovery'?BuyerDiscovery.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='pipeline'?SalesPipeline.render(CustomerDashboard.getData(),{sector:$('sector').value,query:$('search').value},CustomerDashboard.isReady()):view==='customers'?CustomerDashboard.render({sector:$('sector').value,query:$('search').value}):stats(s)+(view==='overview'?charts(s)+panel('Opportunities on the radar','Open deals in your selected accounts. Select a deal to explore.',opportunityTable(s,true),'<button class="quiet" data-go="pipeline">View all opportunities ↗</button>')+activities(s):view==='campaigns'?campaigns(s):view==='leads'?leads(s):panel('Every deal, every stage','Includes open, awarded, and lost opportunities. Select a deal for details.',opportunityTable(s)));
     $('customer-search-panel').hidden=view==='inquiries';
     $('customer-search-panel').classList.toggle('customer-search-active',view==='customers');
     $('customer-search-heading').hidden=view!=='customers';
@@ -91,24 +91,23 @@
     if(view==='inquiries'){WebsiteInquiries.click(event);return;}
     const prospect=event.target.closest('[data-discovery-add]');
     if(prospect){const defaults=BuyerDiscovery.draft(prospect.dataset.discoveryAdd,$('sector').value);if(defaults)CustomerDashboard.addProspect(defaults,()=>navigate('customers'));return;}
+    const record=event.target.closest('[data-pipeline-record]');if(record){SalesPipeline.open(Number(record.dataset.pipelineRecord));return;}
     if(CustomerDashboard.click(event))return;
     const go=event.target.closest('[data-go]');if(go){navigate(go.dataset.go);return;}
     const button=event.target.closest('[data-opportunity]');if(!button)return;
-    const p=data.opportunities.find(p=>p.id===Number(button.dataset.opportunity)),o=data.organizations.find(o=>o.id===p.organizationId);
-    $('detail').classList.remove('customer-dialog');$('detail').removeAttribute('aria-labelledby');
-    $('detail-content').innerHTML=`<h2>${escape(p.name)}</h2><p class="subtitle">${escape(o.name)} · ${escape(o.sector)}</p><dl>${[['Stage',p.stage],['Potential contract value',money(p.value)],['Awarded contract value',money(p.awardedValue)],['Won/lost reason',p.outcomeReason||'Not recorded'],['Win probability',p.probability===null||p.probability===undefined?'Unknown':Math.round(p.probability*100)+'%'],['Expected closing',date(p.award)],['Opportunity owner',p.owner],['Clearance requirements',o.clearance]].map(([label,value])=>`<div><dt>${label}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl><p class="dialog-note">Fictional opportunity for demonstration. Values, dates, and probabilities are illustrative.</p>`;
-    $('detail').showModal();
+    SalesPipeline.open(Number(button.dataset.opportunity));
   });
   $('close-detail').addEventListener('click',()=>$('detail').close());
   $('search').addEventListener('input',render);$('sector').addEventListener('change',render);
   $('reset').addEventListener('click',()=>{$('search').value='';$('sector').value='all';CustomerDashboard.reset();render();});
   $('export').addEventListener('click',()=>{
     if(view==='customers'){CustomerDashboard.exportRows();return;}
-    const s=current(),rows=[['Opportunity','Organization','Sector','Stage','Potential contract value','Currency','Win probability','Expected closing','Owner','Awarded contract value','Won/lost reason'],...s.opportunities.map(p=>[p.name,s.orgById.get(p.organizationId).name,s.orgById.get(p.organizationId).sector,p.stage,p.value??'Unknown','USD',p.probability??'Unknown',p.award,p.owner,p.awardedValue??'Unknown',p.outcomeReason||''])];
+    const s=current(),items=view==='pipeline'?PipelineModel.select(data,{sector:$('sector').value,query:$('search').value}):s.opportunities,rows=[['Opportunity','Organization','Sector','Stage','Potential contract value','Currency','Win probability','Expected closing','Owner','Awarded contract value','Won/lost reason','Market segment','Next action','Follow-up date'],...items.map(p=>[p.name,s.orgById.get(p.organizationId).name,s.orgById.get(p.organizationId).sector,view==='pipeline'?PipelineModel.stage(p):p.stage,p.value??'Unknown','USD',p.probability??'Unknown',p.award,p.owner,p.awardedValue??'Unknown',p.outcomeReason||'',(s.orgById.get(p.organizationId).segments||[s.orgById.get(p.organizationId).segment]).join('; '),p.nextAction||'',p.followupDate||''])];
     const url=URL.createObjectURL(new Blob([model.csv(rows)],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');
     link.href=url;link.download='flightpath-opportunities.csv';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
   function fromHash(){view=Object.hasOwn(titles,location.hash.slice(1))?location.hash.slice(1):'customers';render();if(view==='inquiries')WebsiteInquiries.ensureLoaded();}
+  SalesPipeline.init();
   WebsiteInquiries.init(()=>{if(view==='inquiries')render();});
   window.addEventListener('hashchange',fromHash);fromHash();CustomerDashboard.init(()=>{data=CustomerDashboard.getData()||FlightpathData;render();});
 })();
