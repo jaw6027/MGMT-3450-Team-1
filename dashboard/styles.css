@@ -96,3 +96,8 @@ footer a{color:inherit;text-underline-offset:3px}
 .pipeline-overdue{display:block;color:#a12d22;font-size:12px;margin-top:6px}
 @media(max-width:1100px){.pipeline-stages{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:640px){.pipeline-stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.pipeline-table{table-layout:fixed;min-width:760px;white-space:normal}
+.pipeline-table th,.pipeline-table td{padding:14px 12px;overflow-wrap:anywhere;line-height:1.6}
+.pipeline-table th:first-child{width:23%}
+.pipeline-table .badge{white-space:normal}
